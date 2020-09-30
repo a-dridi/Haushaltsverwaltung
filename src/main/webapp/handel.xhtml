@@ -1,0 +1,515 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core" >
+
+    <h:head>
+        <title>Haushaltsverwaltung - Handel</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+
+                    <h2>Handel - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{handelController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{handelController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{handelController.clearNotizen()}" icon="ui-icon-close" />
+                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{handelController.scrollTabelle()}" value="Tabelle" icon="ui-icon-disk" />
+                            <p:commandButton action="#{handelController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{handelController.scrollHandelspartnerList()}" value="Handelspartner Liste" icon="ui-icon-star" />
+                            <p:commandButton action="#{handelController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{handelController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{handelController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{handelController.datensatzLoeschen()}"
+                                                             ajax="true" style="width: 100%;height:40px"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> Datum im folgenden Format eingeben: dd.mm.yyyy - z.B.: 22.12.2018</h4>
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+
+                                    <p:remoteCommand name="changeRowNumbers" action="#{handelController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            handelTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+
+                                    <p:dataTable  reflow="true" var="handel" value="#{handelController.handelList}" widgetVar="handelTable"
+                                                  id="handelTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  paginator="true" rows="#{handelController.rownumbers}"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{handel.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{handelController.filteredHandelList}">
+                                        <p:ajax event="cellEdit" listener="#{handelController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Handel " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('handelTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{handelController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="handelTabelleDaten" fileName="Handel" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="handelTabelleDaten" fileName="Handel"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="handelTabelleDaten" fileName="Handel" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="handelTabelleDaten" fileName="Handel" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="handelTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="handel"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{handelController.datensatzLoeschen(handel.id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{handel.id}" sortBy="#{handel.id}" headerText="ID" style="width:120px" filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{handel.id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{handel.bezeichnung}" sortBy="#{handel.bezeichnung}" headerText="Bezeichnung"  filterMatchMode="contains" style="width:500px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Bezeichnung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.bezeichnung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{handel.bezeichnung}" placeholder="#{handel.bezeichnung}" style="width:96%" label="Bezeichnung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{handel.handelspartner}" sortBy="#{handel.handelspartner}" headerText="Handelspartner"  filterMatchMode="contains" style="width:300px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Handelspartner"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.handelspartner}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{handel.handelspartner}" placeholder="#{handel.handelspartner}" style="width:96%" label="Handelspartner"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{handel.gegenleistung}" sortBy="#{handel.gegenleistung}" headerText="Gegenleistung"  filterMatchMode="contains" style="width:300px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Gegenleistung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.gegenleistung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{handel.gegenleistung}" placeholder="#{handel.gegenleistung}" style="width:96%" label="Gegenleistung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{handel.ort}" sortBy="#{handel.ort}" headerText="Ort"  filterMatchMode="contains" style="width:300px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Ort"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.ort}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{handel.ort}" placeholder="#{handel.ort}" style="width:96%" label="Ort"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:140px" filterBy="#{handel.datum}" sortBy="#{handel.datum}" headerText="Datum" 
+                                                  filterMatchMode="contains">
+                                            <f:facet name="header">
+                                                <h:outputText value="Datum"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.datum}" converter="dateConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:calendar placeholder="#{handel.datum}" value="#{handel.datum}" style="width:96%" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                                converter="dateConverter" label="Datum"></p:calendar>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{handel.bemerkung}" sortBy="#{handel.bemerkung}" headerText="Bemerkung"  filterMatchMode="contains" style="width:400px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Bemerkung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{handel.bemerkung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{handel.bemerkung}" placeholder="#{handel.bemerkung}" style="width:96%" label="Bemerkung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{handel.anhang}">   
+                                                <p:button href="#{handel.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+
+                                        </p:column>
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="handelTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('handelTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bezeichnung" value="Bezeichnung: " />
+                                        <br/>
+                                        <p:inputText id="bezeichnung" value="#{handelController.bezeichnung}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="handelspartner" value="Handelspartner: " />
+                                        <br/>
+                                        <p:inputText id="handelspartner" value="#{handelController.handelspartner}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="gegenleistung" value="Gegenleistung: " />
+                                        <br/>
+                                        <p:inputText id="gegenleistung" value="#{handelController.gegenleistung}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ort" value="Ort: " />
+                                        <br/>
+                                        <p:inputText id="ort" value="#{handelController.ort}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="datum" value="Datum: (Format: dd.mm.yyyy) " />
+                                        <br/>
+                                        <h5>Wenn nichts angegeben wird, dann wird das heutige Datum übernommen</h5>
+                                        <p:calendar id="datum" value="#{handelController.datum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                    style="width: 100%" converter="dateConverter"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bemerkung" value="Bemerkung: " />
+                                        <br/>
+                                        <p:inputText id="bemerkung" value="#{handelController.bemerkung}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{handelController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{handelController.speichern()}" 
+                                             process="hinzufuegenForm"
+                                             update="tabellenAnsicht,handelspartnerForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" >
+                            </p:commandButton>
+                        </h:form>
+
+
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-asterisk"/>   Alle gespeicherten Handelspartner</h4></div>
+                    <div class="panel-body">
+                        <h:form id="handelspartnerForm">
+                            <p:outputPanel id="handelspartnerPanel">
+                                <h4>Auflistung aller Handelspartner, die in der Tabelle "Handel" gespeichert sind:</h4>
+                                <p:dataTable  reflow="true" var="handelspartner" value="#{handelController.handelspartnerList}" widgetVar="handelspartnerTable"
+                                              id="handelspartnerTabelleDaten"
+                                              paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                              paginator="true" rows="#{handelController.rownumbers}"
+                                              sortMode="multiple"
+                                              editable="true" editMode="cell"
+                                              rowIndexVar="rowIndex"
+                                              rowKey="#{handelspartner}"
+                                              emptyMessage="Keine Einträge gefunden! " filteredValue="#{handelController.filteredHandelspartnerList}">
+                                    <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                    <f:facet name="header">
+                                        <p:outputPanel>
+                                            <h:outputLabel value="Alle Handelspartner " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                            <p:inputText id="globalFilter" onkeyup="PF('handelspartnerTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                        </p:outputPanel>
+
+                                    </f:facet>
+                                    <f:facet name="footer">
+                                        <h:outputText value="#{handelController.datensaetzeAnzahlText}"/>
+                                    </f:facet>
+
+                                    <f:facet name="{Exporters}">
+                                        <h:commandLink>
+                                            <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                            <p:dataExporter type="pdf" target="handelspartnerTabelleDaten" fileName="Handelspartner" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xls_icon.png" style="max-width: 20%"/>
+                                            <p:dataExporter type="xls" target="handelspartnerTabelleDaten" fileName="Handelspartner"/>
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/csv.png" style="max-width: 20%"/>
+                                            <p:dataExporter type="csv" target="handelspartnerTabelleDaten" fileName="Handelspartner" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xml.png" style="max-width: 20%"/>
+                                            <p:dataExporter type="xml" target="handelspartnerTabelleDaten" fileName="Handelspartner" />
+                                        </h:commandLink>
+
+                                        <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                            <p:printer target="handelspartnerTabelleDaten" />
+                                        </p:commandButton>
+
+                                        <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                         icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="handel"
+                                                         ajax="false"/>
+                                    </f:facet>
+
+                                    <p:column filterBy="#{handelspartner}" sortBy="#{handelspartner}" headerText="Handelspartner">
+                                        <h:outputText value="#{handelspartner}" />
+                                    </p:column>
+
+                                </p:dataTable>
+                            </p:outputPanel>      
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_id" value="#{handelController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhang" fileUploadListener="#{handelController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{handelController.editAnhang()}"
+                                                 style="width: 100%;height:45px"
+                                                 ajax="false"/>
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{handelController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{handelController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

@@ -1,0 +1,668 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Haushaltsverwaltung - Reserven</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h2>Reserven - Tabelle</h2>
+                    <h4>Geldreserven, Edelmetalle, Rücklagen und andere Arten von finanziellen und nicht finanziellen Reserven.</h4>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{reservenController.notiztext}" height="130" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{reservenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{reservenController.clearNotizen()}" icon="ui-icon-close" />                
+                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{reservenController.scrollTabelle()}" value="Tabelle" icon="ui-icon-disk" />
+                            <p:commandButton action="#{reservenController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{reservenController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{reservenController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{reservenController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{reservenController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{reservenController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="tabellenAnsicht"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{reservenController.datensatzLoeschen()}"
+                                                             style="width: 100%;height:40px"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{reservenController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            reservenTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="reserven" value="#{reservenController.reservenListenSQL}" widgetVar="reservenTable"
+                                                  id="reservenTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{reservenController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{reserven.reserven_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{reservenController.filteredReservenListenSQL}">
+                                        <p:ajax event="cellEdit" listener="#{reservenController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Reserven " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('reservenTable').filter()" style="width:150px" placeholder="Suchen..."/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="reservenTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{reservenController.onToggle}" />
+                                                </p:columnToggler>
+                                                <h:outputText value="Summe Geldreserven: #{reservenController.geldEuroSumme}€ -- #{reservenController.geldUSDSumme} USD -- #{reservenController.geldCHFSumme} CHF"/>
+                                                <br/>
+                                                <h:outputText value="Gesamtmenge an Edelmetallen: #{reservenController.unzeSumme} Unze"/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{reservenController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="reservenTabelleDaten" fileName="Reserven" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="reservenTabelleDaten" fileName="Reserven"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="reservenTabelleDaten" fileName="Reserven" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="reservenTabelleDaten" fileName="Reserven" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="reservenTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="reserven"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{reservenController.datensatzLoeschen(reserven.reserven_id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{reserven.reserven_id}" sortBy="#{reserven.reserven_id}" headerText="ID" style="width:120px" 
+                                                  filterMatchMode="contains"  visible="#{reservenController.columnList[0]}" exportable="#{reservenController.columnList[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.reserven_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{reserven.reserven_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{reserven.kategorie}" sortBy="#{reserven.kategorie}" headerText="Kategorie" 
+                                                  filterMatchMode="exact" visible="#{reservenController.columnList[1]}" exportable="#{reservenController.columnList[1]}" style="width:150px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('reservenTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Kat. ausw." itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{reservenController.reservenkategorien}" var="reservenkateogrieEintrag"
+                                                                   itemValue="#{reservenkateogrieEintrag.kategoriebezeichnung}"  itemLabel="#{reservenkateogrieEintrag.kategoriebezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Kategorie"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.kategorie}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="kategorieDropauswahl" 
+                                                                     value="#{reserven.kategorie}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="reservenKategorieConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{reserven.kategorie}" itemValue="#{reserven.kategorie}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{reservenController.reservenkategorien}" var="reservenkateogrieEintrag"
+                                                                       itemValue="#{reservenkateogrieEintrag}"  itemLabel="#{reservenkateogrieEintrag.kategoriebezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{reserven.beschreibung}" sortBy="#{reserven.beschreibung}" headerText="Beschreibung"  
+                                                  filterMatchMode="contains" visible="#{reservenController.columnList[2]}" exportable="#{reservenController.columnList[2]}" style="width:300px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Beschreibung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.beschreibung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{reserven.beschreibung}" placeholder="#{reserven.beschreibung}" style="width:96%" label="Beschreibung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{reserven.betrag}" sortBy="#{reserven.betrag}" headerText="Betrag" filterMatchMode="contains"
+                                                  visible="#{reservenController.columnList[3]}" exportable="#{reservenController.columnList[3]}">
+
+                                            <f:facet name="header">
+                                                <h:outputText value="Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.betrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{reserven.betrag}"  placeholder="#{reserven.betrag}" style="width:96%" label="Betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{reserven.waehrung}" sortBy="#{reserven.waehrung}" headerText="Waehrung" 
+                                                  filterMatchMode="exact" visible="#{reservenController.columnList[4]}" exportable="#{reservenController.columnList[4]}" style="width:120px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('reservenTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="W. ausw." itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{reservenController.reservenwaehrungen}" var="reservenwaehrungenEintrag"
+                                                                   itemValue="#{reservenwaehrungenEintrag.waehrungsname}"  itemLabel="#{reservenwaehrungenEintrag.waehrungsname}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Waehrung"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.waehrung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="waehrungDropauswahl" 
+                                                                     value="#{reserven.waehrung}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="reservenWaehrungConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{reserven.waehrung}" itemValue="#{reserven.waehrung}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{reservenController.reservenwaehrungen}" var="reservenwaehrungEintrag"
+                                                                       itemValue="#{reservenwaehrungEintrag}"  itemLabel="#{reservenwaehrungEintrag.waehrungsname}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{reserven.lagerort}" sortBy="#{reserven.lagerort}" headerText="Lagerort" 
+                                                  filterMatchMode="contains" visible="#{reservenController.columnList[5]}" exportable="#{reservenController.columnList[5]}" style="width:360px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Lagerort"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.lagerort}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{reserven.lagerort}"  placeholder="#{reserven.lagerort}" style="width:96%" label="Lagerort"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{reserven.bemerkungen}" sortBy="#{reserven.bemerkungen}" headerText="Bemerkungen" 
+                                                  filterMatchMode="contains" visible="#{reservenController.columnList[6]}" exportable="#{reservenController.columnList[6]}" style="width:320px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Bemerkungen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{reserven.bemerkungen}" placeholder="#{reserven.bemerkungen}" style="width:96%" label="Bemerkungen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:140px" filterBy="#{reserven.datum}" sortBy="#{reserven.datum}" headerText="Datum" 
+                                                  filterMatchMode="contains" visible="#{reservenController.columnList[7]}" exportable="#{reservenController.columnList[7]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Datum"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{reserven.datum}" converter="dateConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:calendar placeholder="#{reserven.datum}" value="#{reserven.datum}" style="width:96%" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                                converter="dateConverter" label="Datum"></p:calendar>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:70px" headerText="D" exportable="false" visible="#{reservenController.columnList[8]}">
+                                            <p:outputPanel rendered="#{reserven.anhang}">   
+                                                <p:button href="#{reserven.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="reservenTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('reservenTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="beschreibung" value="Beschreibung: " />
+                                        <br/>
+                                        <p:inputText id="beschreibung" value="#{reservenController.beschreibung}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorie" value="Kategorie: " />
+                                        <br/>
+                                        <p:outputPanel id="kategorieSelectmany">
+                                            <p:selectOneMenu id="kategorie" onchange="PF('reservenTable').filter()" 
+                                                             value="#{reservenController.reservenkategorie}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="reservenKategorieConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{reservenController.reservenkategorien}" var="reservenkateogrieEintrag"
+                                                               itemValue="#{reservenkateogrieEintrag}"  itemLabel="#{reservenkateogrieEintrag.kategoriebezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel> 
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="betrag" value="Betrag: " />
+                                        <br/>
+                                        <p:inputText id="betrag" value="#{reservenController.betrag}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="waehrung" value="Währung: " />
+                                        <br/>
+                                        <p:outputPanel id="waehrungSelectmany">
+                                            <p:selectOneMenu id="waehrung" onchange="PF('reservenTable').filter()" 
+                                                             value="#{reservenController.reservenwaehrung}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="reservenWaehrungConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Waehrung auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{reservenController.reservenwaehrungen}" var="reservenwaehrungEintrag"
+                                                               itemValue="#{reservenwaehrungEintrag}"  itemLabel="#{reservenwaehrungEintrag.waehrungsname}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel> 
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="lagerort" value="Lagerort: " />
+                                        <br/>
+                                        <p:inputText id="lagerort" value="#{reservenController.lagerort}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bemerkungen" value="Bemerkungen: " />
+                                        <br/>
+                                        <h5>HIER: Infos über Haltbarkeit/Deckungsdauer und andere Informationen angeben</h5>
+                                        <br/>
+                                        <p:inputText id="bemerkungen" value="#{reservenController.bemerkungen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="datum" value="Datum: (Format: dd.mm.yyyy) " />
+                                        <br/>
+                                        <h5>Wenn nichts angegeben wird, dann wird das heutige Datum übernommen</h5>
+                                        <p:calendar id="datum" value="#{reservenController.datum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                    style="width: 100%" converter="dateConverter"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{reservenController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{reservenController.speichern()}" 
+                                             process="hinzufuegenForm"
+                                             icon="ui-icon-circle-plus"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieReservenkategorie" value="Kategorie (Reservenkategorie): " />
+                                        <br/>
+                                        <p:inputText id="kategorieReservenkategorie" value="#{reservenController.neuReservenKategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{reservenController.kategorieSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:kategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <h:form id="waehrungForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+                            <p:panelGrid id="waehrungAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieReservenwaehrung" value="Währung (Reservenwährung): " />
+                                        <br/>
+                                        <p:inputText id="kategorieReservenwaehrung" value="#{reservenController.neuReservenWaehrung}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{reservenController.reservenWaehrungspeichern()}" 
+                                             process="waehrungForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:waehrungSelectmany,del_waehrungForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="reservenkategorieLoeschen" value="Kategorie (Reservenkategorie):  " />
+                                        <br/>
+                                        <p:selectOneMenu id="reservenkategorieLoeschen" onchange="PF('reservenTable').filter()" 
+                                                         value="#{reservenController.deleteReservenKategorie}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="reservenKategorieConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{reservenController.reservenkategorien}" var="reservenkateogrieEintrag"
+                                                           itemValue="#{reservenkateogrieEintrag}"  itemLabel="#{reservenkateogrieEintrag.kategoriebezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: " />
+                                        <p:inputText id="changekategorie" value="#{reservenController.change_Kategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{reservenController.kategorieLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="tabellenAnsicht,hinzufuegenForm:kategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <h:form id="del_waehrungForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+
+                            <p:panelGrid id="waehrungDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="reservenwaehrungLoeschen" value="Währung (Reservenwährung):  " />
+                                        <br/>
+                                        <p:selectOneMenu id="reservenwaehrungLoeschen" onchange="PF('reservenTable').filter()" 
+                                                         value="#{reservenController.deleteReservenWaehrung}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="reservenWaehrungConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{reservenController.reservenwaehrungen}" var="reservenwaehrungEintrag"
+                                                           itemValue="#{reservenwaehrungEintrag}"  itemLabel="#{reservenwaehrungEintrag.waehrungsname}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changewaehrung"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: " />
+                                        <p:inputText id="changewaehrung" value="#{reservenController.change_waehrung}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{reservenController.reservenWaehrungLoeschen()}" 
+                                             process="del_waehrungForm"
+                                             icon="ui-icon-trash"
+                                             update="tabellenAnsicht,hinzufuegenForm:waehrungSelectmany,del_waehrungForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>    
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_id" value="#{reservenController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhangLoeschen" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhangLoeschen" fileUploadListener="#{reservenController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{reservenController.editAnhang()}"
+                                                 style="width: 100%;height:45px"
+                                                 ajax="false"/>
+
+
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange"  action="#{reservenController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{reservenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

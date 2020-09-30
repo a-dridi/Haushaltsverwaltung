@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Grafik: Vermögen (Monatlich)</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{vermoegenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{vermoegenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{vermoegenController.clearNotizen()}" icon="ui-icon-close" />               
+                </h:form>
+                <br/>
+                <p:separator/>
+
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="2">
+                            <p:menuitem value="Vermögen (Monatlich)" outcome="vermoegen">
+                            </p:menuitem>
+                            <p:menuitem value="Vermögen (Jährlich)" outcome="vermoegen_jaehrlich">
+                            </p:menuitem>
+                            <p:menuitem value="Grafik: Vermögen (Monatlich)" outcome="vermoegen_grafik_monatlich">
+                            </p:menuitem>
+                            <p:menuitem value="Grafik: Vermögen (Jährlich)" outcome="vermoegen_grafik_jaehrlich">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+                    <br/>
+                    <h2>Grafische Darstellung: Vermögen (Monatliche Auflistung) </h2>
+                    <h3></h3>
+                </p:outputPanel>
+                <h:form>
+                    <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="exportChart()"/>
+                </h:form>
+                <h:form>
+                    <p:lineChart model="#{vermoegenController.vermoegenWachstumMonatlich}" style="height:500px;"
+                             widgetVar="chart1"/>
+                </h:form>
+
+                <p:dialog widgetVar="dlg" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                    <p:outputPanel id="output" layout="block" style="width:610px;height:800px"/>
+                </p:dialog>
+
+                <script type="text/javascript">
+                    function exportChart() {
+                        //export image
+                        $('#output').empty().append(PF('chart1').exportAsImage());
+
+                        //show the dialog
+                        PF('dlg').show();
+                    }
+                </script>
+                <br/>
+                <br/>
+                <p:separator/>
+                <br/>
+                <br/>
+                <h:form>
+                    <p:lineChart model="#{vermoegenController.vermoegenWachstumMonatlichProzent}" style="height:500px;" 
+                             widgetVar="chart2"/>
+                </h:form>
+                <h:form>
+                    <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="zweiterexportChart()"/>
+                </h:form>
+
+                <p:dialog widgetVar="dlg2" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                    <p:outputPanel id="output2" layout="block" style="width:610px;height:800px"/>
+                </p:dialog>
+
+                <script type="text/javascript">
+                    function zweiterexportChart() {
+                        //export image
+                        $('#output2').empty().append(PF('chart2').exportAsImage());
+
+                        //show the dialog
+                        PF('dlg2').show();
+                    }
+                </script>
+                <br/>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{vermoegenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

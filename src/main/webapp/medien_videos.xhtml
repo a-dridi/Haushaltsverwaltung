@@ -1,0 +1,742 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Medien: Videos</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="3">
+                            <p:menuitem value="Musik - Tabelle" outcome="medien_musik">
+                            </p:menuitem>
+                            <p:menuitem value="Software - Tabelle" outcome="medien_software">
+                            </p:menuitem>
+                            <p:menuitem value="Videoclips - Tabelle" outcome="medien_videoclips">
+                            </p:menuitem>
+                            <p:menuitem value="Videos - Tabelle" outcome="medien_videos">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Medien" outcome="medien_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Videos - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{medienController.notiztext}" height="70" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{medienController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{medienController.clearNotizen()}" icon="ui-icon-close" />
+                </h:form>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{medienController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{medienController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{medienController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{medienController.datensatzLoeschenRueckgangigMachenVideos()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{medienController.deleteIDVideos}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{medienController.datensatzLoeschenMedienVideos()}"
+                                                             style="width: 100%;height:40px"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{medienController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            videosTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="videos" value="#{medienController.medienVideosListe}" widgetVar="videosTable"
+                                                  id="videosTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{medienController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{videos.videos_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{medienController.filteredMedienVideosListe}">
+                                        <p:ajax event="cellEdit" listener="#{medienController.editRow}"/>
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Videos " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('videosTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="videosTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{medienController.onToggleVideos}" />
+                                                </p:columnToggler>
+                                                <br/>
+                                                <h:outputText value="#{medienController.summeMedienVideos}"/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{medienController.datensaetzeAnzahlTextVideos}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="videosTabelleDaten" fileName="Videos" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="videosTabelleDaten" fileName="Videos"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="videosTabelleDaten" fileName="Videos" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="videosTabelleDaten" fileName="Videos" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+                                        <f:facet name="{Exporters}">
+
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="videosTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="medien_videos"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{medienController.datensatzLoeschenMedienVideos(videos.videos_id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{videos.videos_id}" sortBy="#{videos.videos_id}" headerText="ID" style="width:120px" 
+                                                  filterMatchMode="contains" visible="#{medienController.columnListVideos[0]}" exportable="#{medienController.columnListVideos[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.videos_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{videos.videos_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:500px" filterBy="#{videos.name}" sortBy="#{videos.name}" headerText="Name"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideos[1]}" exportable="#{medienController.columnListVideos[1]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Name"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.name}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videos.name}" placeholder="#{videos.name}" style="width:96%" label="Name"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{videos.ard_entertainement}" sortBy="#{videos.ard_entertainement}" headerText="ard Enter." 
+                                                  filterMatchMode="exact" visible="#{medienController.columnListVideos[2]}" exportable="#{medienController.columnListVideos[2]}"
+                                                  style="width:110px" >
+
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videosTable').filter()" 
+                                                                 >
+                                                    <f:converter converterId="javax.faces.Boolean"/>
+                                                    <f:selectItem itemLabel="_" itemValue=""/>
+                                                    <f:selectItem itemLabel="JA" itemValue="true"/>
+                                                    <f:selectItem itemLabel="nein" itemValue="false"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="ard Enter."/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.ard_entertainement}" converter="booleanJaNeinConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu  value="#{videos.ard_entertainement}">
+                                                        <f:selectItem itemLabel="JA" itemValue="#{true}"/>
+                                                        <f:selectItem itemLabel="nein" itemValue="#{false}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{videos.sprache}" sortBy="#{videos.sprache}" headerText="Sprache" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListVideos[3]}" exportable="#{medienController.columnListVideos[3]}"
+                                                  style="width:250px" >
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videosTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienVideosSpracheListe}" var="sprachekateogrieEintrag"
+                                                                   itemValue="#{sprachekateogrieEintrag.bezeichnung}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Sprache"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.sprache}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="spracheDropauswahl"
+                                                                     value="#{videos.sprache}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="medienVideosSpracheConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{videos.sprache}" itemValue="#{videos.sprache}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienVideosSpracheListe}" var="sprachekateogrieEintrag"
+                                                                       itemValue="#{sprachekateogrieEintrag}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:80px" filterBy="#{videos.hd}" sortBy="#{videos.hd}" headerText="HD" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListVideos[4]}" exportable="#{medienController.columnListVideos[4]}">
+
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videosTable').filter()" 
+                                                                 >
+                                                    <f:converter converterId="javax.faces.Boolean"/>
+                                                    <f:selectItem itemLabel="_" itemValue=""/>
+                                                    <f:selectItem itemLabel="JA" itemValue="true"/>
+                                                    <f:selectItem itemLabel="nein" itemValue="false"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="HD"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.hd}" converter="booleanJaNeinConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu  value="#{videos.hd}">
+                                                        <f:selectItem itemLabel="JA" itemValue="#{true}"/>
+                                                        <f:selectItem itemLabel="nein" itemValue="#{false}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{videos.genre}" sortBy="#{videos.genre}" headerText="Genre" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListVideos[5]}" exportable="#{medienController.columnListVideos[5]}"
+                                                  style="width:190px" >
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videosTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Genre auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienVideosGenreListe}" var="genrekateogrieEintrag"
+                                                                   itemValue="#{genrekateogrieEintrag.bezeichnung}"  itemLabel="#{genrekateogrieEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Genre"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.genre}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="genreDropauswahl"
+                                                                     value="#{videos.genre}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="medienVideosGenreConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{videos.genre}" itemValue="#{videos.genre}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienVideosGenreListe}" var="genrekateogrieEintrag"
+                                                                       itemValue="#{genrekateogrieEintrag}"  itemLabel="#{genrekateogrieEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>    
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{videos.dauer}" sortBy="#{videos.dauer}" headerText="Dauer"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideos[6]}" exportable="#{medienController.columnListVideos[6]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Dauer"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.dauer}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videos.dauer}" placeholder="#{videos.dauer}" style="width:96%" label="Dauer"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{videos.jahr}" sortBy="#{videos.jahr}" headerText="Jahr"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideos[7]}" exportable="#{medienController.columnListVideos[7]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Jahr"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.jahr}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videos.jahr}" placeholder="#{videos.jahr}" style="width:96%" label="Jahr"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:85px" filterBy="#{videos.serie}" sortBy="#{videos.serie}" headerText="Serie" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListVideos[8]}" exportable="#{medienController.columnListVideos[8]}">
+
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videosTable').filter()" 
+                                                                 >
+                                                    <f:converter converterId="javax.faces.Boolean"/>
+                                                    <f:selectItem itemLabel="_" itemValue=""/>
+                                                    <f:selectItem itemLabel="JA" itemValue="true"/>
+                                                    <f:selectItem itemLabel="nein" itemValue="false"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Serie"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.serie}" converter="booleanJaNeinConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu  value="#{videos.serie}">
+                                                        <f:selectItem itemLabel="JA" itemValue="#{true}"/>
+                                                        <f:selectItem itemLabel="nein" itemValue="#{false}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:140px" filterBy="#{videos.link}" sortBy="#{videos.link}" headerText="Link"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideos[9]}" exportable="#{medienController.columnListVideos[9]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Link"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.link}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videos.link}" placeholder="#{videos.link}" style="width:96%" label="Link"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:140px" filterBy="#{videos.nativer_titel}" sortBy="#{videos.nativer_titel}" headerText="Nativer Titel" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideos[10]}" exportable="#{medienController.columnListVideos[10]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Nativer Titel"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videos.nativer_titel}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videos.nativer_titel}"  placeholder="#{videos.nativer_titel}" style="width:96%" label="Nativer Titel"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="videosTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('videosTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="name" value="Name (Bezeichnung): " />
+                                        <br/>
+                                        <p:inputText id="name" value="#{medienController.nameVideos}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:panelGrid columns="2" style="width: 100%;border: none; border-color: white">
+                                            <p:outputLabel for="ardentertainementFeld" value="ard Entertainement: " style="margin-right: 0px;border: none; border-color: white"/>
+                                            <br/>
+                                            <p:selectBooleanButton class="booleanAuswahlButton" style="width: 100%;border: none; border-color: white;" id="ardentertainementFeld" onLabel="JA" offLabel="nein" onIcon="ui-icon-check" offIcon="ui-icon-close" value="#{medienController.ard_entertainementVideos}"/>                                                
+                                        </p:panelGrid>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprache" value="Sprache: " />
+                                        <br/>
+                                        <p:outputPanel id="sprachekategorieSelectmany">
+                                            <p:selectOneMenu id="sprache" onchange="PF('videosTable').filter()" 
+                                                             value="#{medienController.spracheEintragVideos}" style="max-width: 100%"
+                                                             required="true"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienVideosSpracheConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Video-Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienVideosSpracheListe}" var="sprachekateogrieEintrag"
+                                                               itemValue="#{sprachekateogrieEintrag}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:panelGrid columns="2" style="width: 100%;border: none; border-color: white">
+                                            <p:outputLabel for="hdFeld" value="HD: " style="margin-right: 0px;border: none; border-color: white"/>
+                                            <br/>
+                                            <p:selectBooleanButton class="booleanAuswahlButton" style="width: 100%;border: none; border-color: white;" id="hdFeld" 
+                                                                   onLabel="JA" offLabel="nein" onIcon="ui-icon-check" offIcon="ui-icon-close" 
+                                                                   value="#{medienController.hdVideos}"/>                                                
+                                        </p:panelGrid>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="genre" value="Genre: " />
+                                        <br/>
+                                        <p:outputPanel id="genrekategorieSelectmany">
+                                            <p:selectOneMenu id="genre" onchange="PF('videosTable').filter()" 
+                                                             value="#{medienController.genreEintragVideos}" style="max-width: 100%"
+                                                             required="true"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienVideosGenreConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Video-Genre auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienVideosGenreListe}" var="genrekateogrieEintrag"
+                                                               itemValue="#{genrekateogrieEintrag}"  itemLabel="#{genrekateogrieEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="dauer" value="Dauer in Minuten (m): " />
+                                        <br/>
+                                        <p:inputText id="dauer" value="#{medienController.dauerVideos}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="jahr" value="Jahr: " />
+                                        <br/>
+                                        <p:inputText id="jahr" value="#{medienController.jahrVideos}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:panelGrid columns="2" style="width: 100%;border: none; border-color: white">
+                                            <p:outputLabel for="serieFeld" value="Serie: " style="margin-right: 0px;border: none; border-color: white"/>
+                                            <br/>
+                                            <p:selectBooleanButton class="booleanAuswahlButton" style="width: 100%;border: none; border-color: white;" id="serieFeld" 
+                                                                   onLabel="JA" offLabel="nein" onIcon="ui-icon-check" offIcon="ui-icon-close" 
+                                                                   value="#{medienController.serieVideos}"/>                                                
+                                        </p:panelGrid>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="link" value="Link: " />
+                                        <br/>
+                                        <p:inputText id="link" value="#{medienController.linkVideos}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="nativer_titel" value="Nativer Titel: " />
+                                        <br/>
+                                        <h5>Hier kann auch der native Titel (Titel in Fremdsprache) des Videos gespeichert werden.</h5>
+                                        <br/>
+                                        <p:inputText id="nativer_titel" value="#{medienController.nativer_TitelVideos}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{medienController.speichernMedienVideos()}" 
+                                             process="hinzufuegenForm"
+                                             style="width: 100%;height:45px"
+                                             update="tabellenAnsicht"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Sprache (Video - Sprache) </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprachekategorie" value="Sprache: " />
+                                        <br/>
+                                        <p:inputText id="sprachekategorie" value="#{medienController.neuMedienVideosSprache}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienVideosSpracheSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:sprachekategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="genreForm">
+                            <h4 style="font-weight: bold">Genre (Genre - Sprache) </h4>
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieGenre" value="Genre: " />
+                                        <br/>
+                                        <p:inputText id="kategorieGenre" value="#{medienController.neuMedienVideosGenre}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienVideosGenreSpeichern()}" 
+                                             process="genreForm"
+                                             update="tabellenAnsicht,hinzufuegenForm:genrekategorieSelectmany,del_genreFormForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Sprache (Video - Sprache) </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprachekategorieLoeschen" value="Sprache: " />
+                                        <br/>
+                                        <p:selectOneMenu id="sprachekategorieLoeschen" onchange="PF('videosTable').filter()" 
+                                                         value="#{medienController.deleteMedienVideosSprache}" style="max-width: 100%"
+                                                         required="true"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienVideosSpracheConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{medienController.medienVideosSpracheListe}" var="sprachekateogrieEintrag"
+                                                           itemValue="#{sprachekateogrieEintrag}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changesprache"  value="-> gelöschte Sprache (Kategorie) der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changesprache" value="#{medienController.change_MedienVideosSprache}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienVideosSpracheLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:sprachekategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_genreFormForm">
+                            <h4 style="font-weight: bold">Genre (Genre - Sprache) </h4>
+
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="loeschenGenre" value="Genre: " />
+                                        <br/>
+                                        <p:selectOneMenu id="loeschenGenre" onchange="PF('videosTable').filter()" 
+                                                         value="#{medienController.deleteMedienVideosGenre}" style="max-width: 100%"
+                                                         required="true"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienVideosGenreConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Genre auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{medienController.medienVideosGenreListe}" var="genrekateogrieEintrag"
+                                                           itemValue="#{genrekateogrieEintrag}"  itemLabel="#{genrekateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changegenre"  value="-> gelöschte Genre (Kategorie) der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changegenre" value="#{medienController.change_MedienVideosGenre}" style="width: 100%"/>
+
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienVideosGenreLoeschen()}" 
+                                             process="del_genreFormForm"
+                                             update="del_genreFormForm,tabellenAnsicht,hinzufuegenForm:genrekategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{medienController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

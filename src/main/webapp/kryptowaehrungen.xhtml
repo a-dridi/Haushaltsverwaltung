@@ -1,0 +1,889 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core" >
+    <h:head>
+        <title>Haushaltsverwaltung - Kryptowaehrungen</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanelGlobal">
+                    <h2 style="font-weight: bold"> Kryptowährungen: </h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{kryptowaehrungenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{kryptowaehrungenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{kryptowaehrungenController.clearNotizen()}" icon="ui-icon-close" />
+                    <h:outputText value="#{kryptowaehrungenController.datumNotiztext}"/>
+                </h:form>
+                <p:separator/>
+                <br/>
+                <h:form>
+                    <p:tabMenu activeIndex="0">
+                        <p:menuitem value="Kauf/Verkauf" outcome="kryptowaehrungen">
+                        </p:menuitem>
+                        <p:menuitem value="Vermögen" outcome="kryptowaehrungen_vermoegen">
+                        </p:menuitem>
+                        <p:menuitem value="Überweisungen" outcome="kryptowaehrungen_ueberweisung">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Tabelle)" outcome="portfolio_zustand_tabelle">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Grafik)" outcome="portfolio_zustand">
+                        </p:menuitem>
+                    </p:tabMenu>
+                </h:form>
+
+                <!-- TABELLE: Kauf/Verkauf - Kryptowaehrungen -->
+                <p:outputPanel id="ueberschriftPanelKaufverkauf">
+                    <h3 style="font-weight: bold">Kauf / Verkauf - Tabelle</h3>
+                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! Beträge (auch Wert in EURO) werden IMMER im folgenden Format eingeben: 12.43</h4>
+
+                </p:outputPanel>
+                <!-- Immer Anpassen -->
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{kryptowaehrungenController.scrollTabelleKaufverkauf()}" value="Tabelle" icon="ui-icon-newwin" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollHinzufuegenKaufverkauf()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <p:outputPanel id="tabellenAnsichtKaufverkauf">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{kryptowaehrungenController.datensatzLoeschenRueckgangigMachenKaufverkauf()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenFormKaufverkauf:tabelleausgabenPanelKaufverkauf"/>
+                            </h:form>
+
+                            <h:form id="deleteFormKaufverkauf">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{kryptowaehrungenController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteFormKaufverkauf"
+                                                             update="listenFormKaufverkauf:tabelleausgabenPanelKaufverkauf"
+                                                             style="width: 100%;height:40px"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{kryptowaehrungenController.datensatzLoeschenKaufverkauf()}"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenFormKaufverkauf">
+
+                                <p:outputPanel id="tabelleausgabenPanelKaufverkauf">
+
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> Datum im folgenden Format eingeben: dd.mm.yyyy - z.B.: 22.12.2018</h4>
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+
+                                    <p:remoteCommand name="changeRowNumbers" action="#{kryptowaehrungenController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            kaufverkaufTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+
+                                    <p:dataTable  reflow="true" var="kaufenverkaufen" value="#{kryptowaehrungenController.kaufverkaufListenSQL}" widgetVar="kaufverkaufTable"
+                                                  id="kaufverkaufTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{kryptowaehrungenController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{kaufenverkaufen.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{kryptowaehrungenController.filteredKaufverkaufListenSQL}">
+                                        <p:ajax event="cellEdit" listener="#{kryptowaehrungenController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Kauf-Verkauf - Kryptowaehrungen" style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('kaufverkaufTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="kaufverkaufTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{kryptowaehrungenController.onToggle}" />
+                                                </p:columnToggler>
+                                                <br/>
+                                                <h:outputText value="Bemerkung: z.B. Kauf von 10 BTC (=Endbetrag) um 1000€ (=Ausgangsbetrag). Verkauf von 10 BTC (=Ausgangsbetrag) um 1000€ (=Endbetrag)" style="text-align: left"/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{kryptowaehrungenController.datensaetzeAnzahlTextKaufverkauf}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="kaufverkaufTabelleDaten" fileName="Kauf-Verkauf_Kryptowaehrungen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="kaufverkaufTabelleDaten" fileName="Kauf-Verkauf_Kryptowaehrungen"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="kaufverkaufTabelleDaten" fileName="Kauf-Verkauf_Kryptowaehrungen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="kaufverkaufTabelleDaten" fileName="Kauf-Verkauf_Kryptowaehrungen" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="kaufverkaufTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenFormKaufverkauf"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="kryptowaehrungen"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{kryptowaehrungenController.datensatzLoeschen(kaufenverkaufen.id)}" 
+                                                             process="listenFormKaufverkauf"
+                                                             update="listenFormKaufverkauf:tabelleausgabenPanelKaufverkauf"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{kaufenverkaufen.id}" sortBy="#{kaufenverkaufen.id}" headerText="ID" style="width:120px" 
+                                                  filterMatchMode="contains"  visible="#{kryptowaehrungenController.columnList[0]}" exportable="#{kryptowaehrungenController.columnList[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{kaufenverkaufen.id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:140px" filterBy="#{kaufenverkaufen.datum}" sortBy="#{kaufenverkaufen.datum}" headerText="Datum"  filterMatchMode="contains"
+                                                  visible="#{kryptowaehrungenController.columnList[1]}" exportable="#{kryptowaehrungenController.columnList[1]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Datum"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.datum}" converter="dateConverter" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:calendar id="datum" value="#{kaufenverkaufen.datum}" placeholder="#{kaufenverkaufen.datum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                                style="width: 96%" converter="dateConverter" required="true" label="Datum"/>
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{kaufenverkaufen.vorgang}" sortBy="#{kaufenverkaufen.vorgang}" headerText="Vorgang" filterMatchMode="exact"
+                                                  visible="#{kryptowaehrungenController.columnList[2]}" exportable="#{kryptowaehrungenController.columnList[2]}" style="width:140px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('kaufverkaufTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Vorgang auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{kryptowaehrungenController.vorgaengeList}" var="kryptovorgangEintrag"
+                                                                   itemValue="#{kryptovorgangEintrag.vorgangbeschreibung}"  itemLabel="#{kryptovorgangEintrag.vorgangbeschreibung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Vorgang"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.vorgang}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="vorgangDropdown" 
+                                                                     value="#{kaufenverkaufen.vorgang}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="kryptowaehrungenVorgangConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{kaufenverkaufen.vorgang}" itemValue="#{kaufenverkaufen.vorgang}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{kryptowaehrungenController.vorgaengeList}" var="vorgangEintrag"
+                                                                       itemValue="#{vorgangEintrag}"  itemLabel="#{vorgangEintrag.vorgangbeschreibung}"/>
+                                                    </p:selectOneMenu>	
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{kaufenverkaufen.ausgangsbetrag}" sortBy="#{kaufenverkaufen.ausgangsbetrag}" headerText="Ausgangs-Betrag" 
+                                                  filterMatchMode="contains" visible="#{kryptowaehrungenController.columnList[3]}" exportable="#{kryptowaehrungenController.columnList[3]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Ausgangs-Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.ausgangsbetrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{kaufenverkaufen.ausgangsbetrag}"  placeholder="#{kaufenverkaufen.ausgangsbetrag}" style="width:96%" label="Ausgangs-Betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{kaufenverkaufen.ausgangswaehrung}" sortBy="#{kaufenverkaufen.ausgangswaehrung}" headerText="Ausgangs-Waehrung" 
+                                                  filterMatchMode="exact" visible="#{kryptowaehrungenController.columnList[4]}" exportable="#{kryptowaehrungenController.columnList[4]}" style="width:160px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('kaufverkaufTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" 
+                                                                   var="kryptowaehrungEintrag"
+                                                                   itemLabel="#{kryptowaehrungEintrag.waehrungsname}"
+                                                                   itemValue="#{kryptowaehrungEintrag.waehrungsname}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Ausgangs-Waehrung"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.ausgangswaehrung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="ausgangswaehrungDropdown" 
+                                                                     value="#{kaufenverkaufen.ausgangswaehrung}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="kryptowaehrungenWaehrungConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{kaufenverkaufen.ausgangswaehrung}" itemValue="#{kaufenverkaufen.ausgangswaehrung}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                                       itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{kaufenverkaufen.endbetrag}" sortBy="#{kaufenverkaufen.endbetrag}" headerText="End-Betrag" 
+                                                  filterMatchMode="contains" visible="#{kryptowaehrungenController.columnList[5]}" exportable="#{kryptowaehrungenController.columnList[5]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="End-Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.endbetrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{kaufenverkaufen.endbetrag}"  placeholder="#{kaufenverkaufen.endbetrag}" style="width:96%" label="End-Betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{kaufenverkaufen.endwaehrung}" sortBy="#{kaufenverkaufen.endwaehrung}" headerText="End-Waehrung" filterMatchMode="exact"
+                                                  visible="#{kryptowaehrungenController.columnList[6]}" exportable="#{kryptowaehrungenController.columnList[6]}" style="width:160px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('kaufverkaufTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" 
+                                                                   var="kryptowaehrungEintrag"
+                                                                   itemLabel="#{kryptowaehrungEintrag.waehrungsname}"
+                                                                   itemValue="#{kryptowaehrungEintrag.waehrungsname}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="End-Waehrung"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.endwaehrung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="endwaehrungDropdown" 
+                                                                     value="#{kaufenverkaufen.endwaehrung}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="kryptowaehrungenWaehrungConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{kaufenverkaufen.endwaehrung}" itemValue="#{kaufenverkaufen.endwaehrung}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                                       itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{kaufenverkaufen.wertineuro}" sortBy="#{kaufenverkaufen.wertineuro}" headerText="Wert in EURO" 
+                                                  filterMatchMode="contains" visible="#{kryptowaehrungenController.columnList[7]}" exportable="#{kryptowaehrungenController.columnList[7]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Wert in EURO"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.wertineuro}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{kaufenverkaufen.wertineuro}"  placeholder="#{kaufenverkaufen.wertineuro}" style="width:96%" label="Wert in EURO"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{kaufenverkaufen.exchange}" sortBy="#{kaufenverkaufen.exchange}" headerText="Exchange" filterMatchMode="exact"
+                                                  visible="#{kryptowaehrungenController.columnList[8]}" exportable="#{kryptowaehrungenController.columnList[8]}" style="width:160px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('kaufverkaufTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Exchange auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{kryptowaehrungenController.exchangesList}" 
+                                                                   var="exchangeEintrag"
+                                                                   itemLabel="#{exchangeEintrag.exchangeName}"
+                                                                   itemValue="#{exchangeEintrag.exchangeName}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Exchange"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.exchange}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="exchangeDropdown"
+                                                                     value="#{kaufenverkaufen.exchange}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="kryptowaehrungenExchangeConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{kaufenverkaufen.exchange}" itemValue="#{kaufenverkaufen.exchange}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{kryptowaehrungenController.exchangesList}" var="exchangeEintrag"
+                                                                       itemValue="#{exchangeEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{kaufenverkaufen.bemerkungen}" sortBy="#{kaufenverkaufen.bemerkungen}" headerText="Bemerkungen" filterMatchMode="contains"
+                                                  visible="#{kryptowaehrungenController.columnList[9]}" exportable="#{kryptowaehrungenController.columnList[9]}" style="width:300px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Informationen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{kaufenverkaufen.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{kaufenverkaufen.bemerkungen}" placeholder="#{kaufenverkaufen.bemerkungen}" style="width:96%" label="Bemerkungen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{kaufenverkaufen.anhang}">   
+                                                <p:button href="#{kaufenverkaufen.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="kaufverkaufTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('kaufverkaufTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenFormKaufverkauf">
+                            <p:panelGrid id="neuenDatensatzFormularKaufverkauf" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="datumKaufverkauf" value="Datum: (Format: dd.mm.yyyy) " />
+                                        <br/>
+                                        <h5>Wenn nichts angegeben wird, dann wird das heutige Datum übernommen</h5>
+                                        <p:calendar id="datumKaufverkauf" value="#{kryptowaehrungenController.kaufverkaufDatum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                    style="width: 100%" converter="dateConverter"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="vorgang" value="Vorgang: " />
+                                        <br/>
+                                        <p:outputPanel id="vorgangSelectmany">
+                                            <p:selectOneMenu id="vorgang" onchange="PF('kaufverkaufTable').filter()" 
+                                                             value="#{kryptowaehrungenController.kryptowaehrungVorgangEintrag}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="kryptowaehrungenVorgangConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Vorgang auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{kryptowaehrungenController.vorgaengeList}" var="vorgangEintrag"
+                                                               itemValue="#{vorgangEintrag}"  itemLabel="#{vorgangEintrag.vorgangbeschreibung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>									 
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgangsbetrag" value="Ausgangs-Betrag: (Format: 26.50)" />
+                                        <br/>
+                                        <p:inputText id="ausgangsbetrag" value="#{kryptowaehrungenController.kaufverkaufAusgangsbetrag}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgangswaehrung" value="Ausgangs-Waehrung: " />
+                                        <br/>
+                                        <p:outputPanel id="ausgangswaehrungSelectmany">
+                                            <p:selectOneMenu id="ausgangswaehrung" onchange="PF('kaufverkaufTable').filter()" 
+                                                             value="#{kryptowaehrungenController.kaufverkaufAusgangswaehrungEintrag}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="kryptowaehrungenWaehrungConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                               itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="endbetrag" value="End-Betrag: (Format: 26.50)" />
+                                        <br/>
+                                        <p:inputText id="endbetrag" value="#{kryptowaehrungenController.kaufverkaufEndbetrag}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="endbetrag" value="End-Waehrung: " />
+                                        <br/>
+                                        <p:outputPanel id="endwaehrungSelectmany">
+                                            <p:selectOneMenu id="endwaehrung" 
+                                                             value="#{kryptowaehrungenController.kaufverkaufEndwaehrungEintrag}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="kryptowaehrungenWaehrungConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                               itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="wertineuroKaufverkauf" value="Wert in EURO: (Format: 26.50)" />
+                                        <br/>
+                                        <p:inputText id="wertineuroKaufverkauf" value="#{kryptowaehrungenController.kaufverkaufWertInEuro}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="exchange" value="Exchange (Handelsort): " />
+                                        <br/>
+                                        <p:outputPanel id="exchangeSelectmany">
+                                            <p:selectOneMenu id="exchange"
+                                                             value="#{kryptowaehrungenController.kaufverkaufExchangeEintrag}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="kryptowaehrungenExchangeConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Exchange/Handelsort auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{kryptowaehrungenController.exchangesList}" var="exchangeEintrag"
+                                                               itemValue="#{exchangeEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel> 
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bemerkungenKaufverkauf" value="Bemerkungen: " />
+                                        <br/>
+                                        <p:inputText id="bemerkungenKaufverkauf" value="#{kryptowaehrungenController.kaufverkaufBemerkungen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhangspkaufverkauf" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhangspkaufverkauf" fileUploadListener="#{kryptowaehrungenController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{kryptowaehrungenController.speichernKaufverkauf()}" 
+                                             process="hinzufuegenFormKaufverkauf"
+                                             icon="ui-icon-circle-plus"
+                                             update="tabellenAnsichtKaufverkauf"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <h5>Währungen sind nach dem Einfügen in allen Kryptowährungen Tabellen verfügbar!</h5>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="waehrungKryptokategorieKaufVerkauf" value="Währung: " />
+                                        <br/>
+                                        <p:inputText id="waehrungKryptokategorieKaufVerkauf" value="#{kryptowaehrungenController.neuWaehrung}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{kryptowaehrungenController.waehrungSpeichern()}" 
+                                             icon="ui-icon-plusthick"
+                                             process="kategorieForm"
+                                             update="tabellenAnsichtKaufverkauf,del_kategorieForm,hinzufuegenFormKaufverkauf:ausgangswaehrungSelectmany,hinzufuegenFormKaufverkauf:endwaehrungSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="exchangeFormKaufverkauf">
+                            <h4 style="font-weight: bold">Exchange </h4>
+                            <p:panelGrid id="exchangeAddPanelKaufverkauf" columns="1" style="width: 100%;border: none">
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="exchangeKryptokategorieKaufVerkauf" value="Exchange: " />
+                                        <br/>
+                                        <p:inputText id="exchangeKryptokategorieKaufVerkauf" value="#{kryptowaehrungenController.neuExchange}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             icon="ui-icon-plusthick"
+                                             actionListener="#{kryptowaehrungenController.exchangeSpeichern()}" 
+                                             update="tabellenAnsichtKaufverkauf,del_exchangeKaufVerkauf,hinzufuegenFormKaufverkauf:exchangeSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="vorgangFormKaufverkauf">
+                            <h4 style="font-weight: bold">Vorgang </h4>
+                            <p:panelGrid id="vorgangAddPanelKaufverkauf" columns="1" style="width: 100%;border: none">
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="vorgangKryptokategorieKaufVerkauf" value="Vorgang: " />
+                                        <br/>
+                                        <p:inputText id="vorgangKryptokategorieKaufVerkauf" value="#{kryptowaehrungenController.neuKryptowaehrungVorgang}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             icon="ui-icon-plusthick"
+                                             actionListener="#{kryptowaehrungenController.vorgangSpeichern()}" 
+                                             update="tabellenAnsichtKaufverkauf,del_vorgangKaufVerkauf,hinzufuegenFormKaufverkauf:vorgangSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold">
+                        <h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4>
+                    </div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <h5>Löscht die angegebene Währung in allen Kryptowaehrungen Tabellen!</h5>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="waehrungKryptoKaufVerkaufLoeschen" value="Währung: " />
+                                        <br/>
+                                        <p:selectOneMenu id="waehrungKryptoKaufVerkaufLoeschen"
+                                                         value="#{kryptowaehrungenController.deleteKryptowaehrungenWaehrungen}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="kryptowaehrungenWaehrungConverter"
+                                                         >
+                                            <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungKatEintrag"
+                                                           itemValue="#{waehrungKatEintrag}"  itemLabel="#{waehrungKatEintrag.waehrungsname}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="changewaehrungKaufverkauf"  value="-> gelöschte Währung der Datensätze auf folgenden Wert ändern: "/>
+                                        <br/>
+                                        <p:inputText id="changewaehrungKaufverkauf" value="#{kryptowaehrungenController.change_waehrung}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{kryptowaehrungenController.waehrungLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsichtKaufverkauf,hinzufuegenFormKaufverkauf:ausgangswaehrungSelectmany,hinzufuegenFormKaufverkauf:endwaehrungSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_exchangeKaufVerkauf">
+                            <h4 style="font-weight: bold">Exchange </h4>
+
+                            <p:panelGrid id="exchangeDelPanelKaufverkauf" columns="1" style="width: 100%;border: none">
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="exchangeLoeschenKaufverkauf" value="Exchange: " />
+                                        <br/>
+                                        <p:selectOneMenu id="exchangeLoeschenKaufverkauf"
+                                                         value="#{kryptowaehrungenController.deleteKryptowaehrungenExchange}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="kryptowaehrungenExchangeConverter"
+                                                         >
+                                            <f:selectItems value="#{kryptowaehrungenController.exchangesList}" var="exchangekatEintrag"
+                                                           itemValue="#{exchangekatEintrag}"  itemLabel="#{exchangekatEintrag.exchangeName}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="changeexchangeKaufverkauf"  value="-> gelöschte Exchange der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changeexchangeKaufverkauf" value="#{kryptowaehrungenController.change_exchange}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{kryptowaehrungenController.exchangeLoeschen()}" 
+                                             process="del_exchangeKaufVerkauf"
+                                             icon="ui-icon-trash"
+                                             update="tabellenAnsichtKaufverkauf,del_exchangeKaufVerkauf,hinzufuegenFormKaufverkauf:exchangeSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_vorgangKaufVerkauf">
+                            <h4 style="font-weight: bold">Vorgang </h4>
+
+                            <p:panelGrid id="vorgangDelPanelKaufverkauf" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="vorgangLoeschenKaufverkauf" value="Exchange: " />
+                                        <br/>
+                                        <p:selectOneMenu id="vorgangLoeschenKaufverkauf" onchange="PF('kaufverkaufTable').filter()" 
+                                                         value="#{kryptowaehrungenController.deleteKryptowaehrungVorgang}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="kryptowaehrungenVorgangConverter"
+                                                         >
+                                            <f:selectItems value="#{kryptowaehrungenController.vorgaengeList}" var="vorgaengekatEintrag"
+                                                           itemValue="#{vorgaengekatEintrag}"  itemLabel="#{vorgaengekatEintrag.vorgangbeschreibung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changevorgaengeKaufverkauf"  value="-> gelöschter Vorgang der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changevorgaengeKaufverkauf" value="#{kryptowaehrungenController.change_vorgang}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{kryptowaehrungenController.vorgangLoeschen()}" 
+                                             process="del_vorgangKaufVerkauf"
+                                             icon="ui-icon-trash"
+                                             update="del_vorgangKaufVerkauf,tabellenAnsichtKaufverkauf,hinzufuegenFormKaufverkauf:vorgangSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_idKaufverkauf" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_idKaufverkauf" value="#{kryptowaehrungenController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhangKaufverkauf" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhangKaufverkauf" fileUploadListener="#{kryptowaehrungenController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm"
+                                                 update="tabellenAnsichtKaufverkauf"
+                                                 style="width: 100%;height:45px"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{kryptowaehrungenController.editAnhangKaufverkauf()}"
+                                                 ajax="false"/>
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{kryptowaehrungenController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <!-- TABELLE: Kauf/Verkauf - Kryptowaehrungen ENDE -->
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{kryptowaehrungenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

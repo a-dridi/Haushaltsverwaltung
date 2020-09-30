@@ -1,0 +1,595 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core" >
+    <h:head>
+        <title>Haushaltsverwaltung - Kryptowaehrungen</title>
+    </h:head>
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanelGlobal">
+                    <h2 style="font-weight: bold"> Kryptowährungen: </h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{kryptowaehrungenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{kryptowaehrungenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{kryptowaehrungenController.clearNotizen()}" icon="ui-icon-close" />                   
+                    <h:outputText value="#{kryptowaehrungenController.datumNotiztext}"/>
+                </h:form>
+                <p:separator/>
+                <br/>
+                <h:form>
+                    <p:tabMenu activeIndex="2">
+                        <p:menuitem value="Kauf/Verkauf" outcome="kryptowaehrungen">
+                        </p:menuitem>
+                        <p:menuitem value="Vermögen" outcome="kryptowaehrungen_vermoegen">
+                        </p:menuitem>
+                        <p:menuitem value="Überweisungen" outcome="kryptowaehrungen_ueberweisung">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Tabelle)" outcome="portfolio_zustand_tabelle">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Grafik)" outcome="portfolio_zustand">
+                        </p:menuitem>
+                    </p:tabMenu>
+                </h:form>
+
+
+                <!-- TABELLE: Überweisungen - Kryptowaehrungen -->
+                <p:outputPanel id="ueberschriftPanelUeberweisungen">
+                    <h3 style="font-weight: bold">Überweisungen - Tabelle</h3>
+                </p:outputPanel>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{kryptowaehrungenController.scrollHinzufuegenUeberweisungen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{kryptowaehrungenController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsichtUeberweisungen">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{kryptowaehrungenController.datensatzLoeschenRueckgangigMachenUeberweisungen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenFormUeberweisungen:tabelleausgabenPanelUeberweisungen"/>
+                            </h:form>
+
+                            <h:form id="deleteFormUeberweisungen">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{kryptowaehrungenController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteFormUeberweisungen"
+                                                             update="listenFormUeberweisungen:tabelleausgabenPanelUeberweisungen"
+                                                             style="width: 100%;height:40px"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{kryptowaehrungenController.datensatzLoeschenUeberweisungen()}"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenFormUeberweisungen">
+
+                                <p:outputPanel id="tabelleausgabenPanelUeberweisungen">
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> Datum im folgenden Format eingeben: dd.mm.yyyy - z.B.: 22.12.2018</h4>
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+
+                                    <p:remoteCommand name="changeRowNumbers" action="#{kryptowaehrungenController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            ueberweisungenTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+
+                                    <p:dataTable  reflow="true" var="ueberweisungenvar" value="#{kryptowaehrungenController.ueberweisungenListenSQL}" widgetVar="ueberweisungenTable"
+                                                  id="ueberweisungenTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{kryptowaehrungenController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{ueberweisungenvar.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{kryptowaehrungenController.filteredUeberweisungenListenSQL}">
+                                        <p:ajax event="cellEdit" listener="#{kryptowaehrungenController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Ueberweisungen - Kryptowaehrungen" style="font-weight: bolder;position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('ueberweisungenTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{kryptowaehrungenController.datensaetzeAnzahlTextUeberweisungen}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="ueberweisungenTabelleDaten" fileName="Ueberweisungen_Kryptowaehrungen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="ueberweisungenTabelleDaten" fileName="Ueberweisungen_Kryptowaehrungen"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="ueberweisungenTabelleDaten" fileName="Ueberweisungen_Kryptowaehrungen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="ueberweisungenTabelleDaten" fileName="Ueberweisungen_Kryptowaehrungen" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="ueberweisungenTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenFormUeberweisungen"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="kryptowaehrungen_ueberweisung"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{kryptowaehrungenController.datensatzLoeschenUeberweisungen(ueberweisungenvar.id)}" 
+                                                             process="listenFormUeberweisungen"
+                                                             update="listenFormUeberweisungen:tabelleausgabenPanelUeberweisungen"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{ueberweisungenvar.id}" sortBy="#{ueberweisungenvar.id}" headerText="ID" style="width:120px" filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{ueberweisungenvar.id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:140px" filterBy="#{ueberweisungenvar.datum}" sortBy="#{ueberweisungenvar.datum}" headerText="Datum"  filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Datum"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.datum}" converter="dateConverter" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:calendar id="datum" value="#{ueberweisungenvar.datum}" placeholder="#{ueberweisungenvar.datum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                                style="width: 96%" converter="dateConverter" required="true" label="Datum"/>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.sender}" sortBy="#{ueberweisungenvar.sender}" headerText="Sender" filterMatchMode="contains" style="width:260px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Sender"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.sender}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ueberweisungenvar.sender}" placeholder="#{ueberweisungenvar.sender}" style="width:96%" label="Sender"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.betrag}" sortBy="#{ueberweisungenvar.betrag}" headerText="Betrag" filterMatchMode="contains" style="width:230px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.betrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ueberweisungenvar.betrag}" placeholder="#{ueberweisungenvar.betrag}" style="width:96%" label="betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.waehrung}" sortBy="#{kaufenverkaufen.waehrung}" headerText="Waehrung" filterMatchMode="exact" style="width:160px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu
+                                                    filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" 
+                                                                   var="kryptowaehrungEintrag"
+                                                                   itemLabel="#{kryptowaehrungEintrag.waehrungsname}"
+                                                                   itemValue="#{kryptowaehrungEintrag.waehrungsname}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Waehrung"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.waehrung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="ueberweisungwaehrungDropdown"
+                                                                     value="#{ueberweisungenvar.waehrung}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="kryptowaehrungenWaehrungConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{ueberweisungenvar.waehrung}" itemValue="#{ueberweisungenvar.waehrung}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                                       itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                    </p:selectOneMenu> 
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.empfaenger}" sortBy="#{ueberweisungenvar.empfaenger}" headerText="Empfaenger" filterMatchMode="contains" style="width:260px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Empfaenger"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.empfaenger}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ueberweisungenvar.empfaenger}" placeholder="#{ueberweisungenvar.empfaenger}" style="width:96%" label="Empfaenger"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.zustand}" sortBy="#{ueberweisungenvar.zustand}" headerText="Zustand" filterMatchMode="contains" style="width:200px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Zustand"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.zustand}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ueberweisungenvar.zustand}" placeholder="#{ueberweisungenvar.zustand}" style="width:96%" label="Zustand"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ueberweisungenvar.bemerkungen}" sortBy="#{ueberweisungenvar.bemerkungen}" headerText="Bemerkungen" filterMatchMode="contains"  style="width:300px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Bemerkungen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ueberweisungenvar.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ueberweisungenvar.bemerkungen}" placeholder="#{ueberweisungenvar.bemerkungen}" style="width:96%" label="Bemerkungen" />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{ueberweisungenvar.anhang}">   
+                                                <p:button href="#{ueberweisungenvar.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="ueberweisungenTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('ueberweisungenTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenFormUeberweisungen">
+                            <p:panelGrid id="neuenDatensatzFormularUeberweisungen" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungdatum" value="Datum: (Format: dd.mm.yyyy) " />
+                                        <br/>
+                                        <h5>Wenn nichts angegeben wird, dann wird das heutige Datum übernommen</h5>
+                                        <p:calendar id="ueberweisungdatum" value="#{kryptowaehrungenController.ueberweisungenDatum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                    style="width: 100%" converter="dateConverter" required="true"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungsender" value="Sender: " />
+                                        <br/>
+                                        <p:inputText id="ueberweisungsender" value="#{kryptowaehrungenController.ueberweisungenSender}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungbetrag" value="Betrag: (Format: 26.50)" />
+                                        <br/>
+                                        <p:inputText id="ueberweisungbetrag" value="#{kryptowaehrungenController.ueberweisungenBetrag}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungwaehrung" value="Waehrung: " />
+                                        <br/>
+                                        <p:outputPanel id="ueberweisungwaehrungSelectmany">
+                                            <p:selectOneMenu id="ueberweisungwaehrung"
+                                                             value="#{kryptowaehrungenController.ueberweisungenWaehrungEintrag}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="kryptowaehrungenWaehrungConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Währung auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungEintrag"
+                                                               itemValue="#{waehrungEintrag}"  itemLabel="#{waehrungEintrag.waehrungsname}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungempfaenger" value="Empfänger: " />
+                                        <br/>
+                                        <p:inputText id="ueberweisungempfaenger" value="#{kryptowaehrungenController.ueberweisungenEmpfaenger}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungzustand" value="Zustand: " />
+                                        <br/>
+                                        <p:inputText id="ueberweisungzustand" value="#{kryptowaehrungenController.ueberweisungenZustand}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ueberweisungbemerkungen" value="Bemerkungen: " />
+                                        <br/>
+                                        <p:inputText id="ueberweisungbemerkungen" value="#{kryptowaehrungenController.ueberweisungenBemerkungen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhangueberweisungen" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhangueberweisungen" fileUploadListener="#{kryptowaehrungenController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+
+                                </pm:field>
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{kryptowaehrungenController.speichernUeberweisungen()}" 
+                                             icon="ui-icon-circle-plus"
+                                             process="hinzufuegenFormUeberweisungen"
+                                             update="tabellenAnsichtUeberweisungen"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <h5>Währungen sind nach dem Einfügen in allen Kryptowährungen Tabellen verfügbar!</h5>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="waehrungKryptokategorieUeberweisungen" value="Währung: " />
+                                        <br/>
+                                        <p:inputText id="waehrungKryptokategorieUeberweisungen" value="#{kryptowaehrungenController.neuWaehrung}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{kryptowaehrungenController.waehrungSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="del_kategorieForm,hinzufuegenFormUeberweisungen:ueberweisungwaehrungSelectmany,tabellenAnsichtUeberweisungen"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold">
+                        <h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4>
+                    </div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Währung </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <h5>Löscht die angegebene Währung in allen Kryptowaehrungen Tabellen!</h5>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="waehrungKryptoUeberweisungenLoeschen" value="Währung: " />
+                                        <br/>
+                                        <p:selectOneMenu id="waehrungKryptoUeberweisungenLoeschen" 
+                                                         value="#{kryptowaehrungenController.deleteKryptowaehrungenWaehrungen}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="kryptowaehrungenWaehrungConverter"
+                                                         >
+                                            <f:selectItems value="#{kryptowaehrungenController.waehrungenList}" var="waehrungKatEintrag"
+                                                           itemValue="#{waehrungKatEintrag}"  itemLabel="#{waehrungKatEintrag.waehrungsname}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+
+                                        <p:outputLabel for="changewaehrungUeberweisungen"  value="-> gelöschte Währung der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changewaehrungUeberweisungen" value="#{kryptowaehrungenController.change_waehrung}" style="width: 100%"/>
+                                        </pm:field>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{kryptowaehrungenController.waehrungLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,hinzufuegenFormUeberweisungen:ueberweisungwaehrungSelectmany,tabellenAnsichtUeberweisungen"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_idKaufverkauf" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_idUeberweisungen" value="#{kryptowaehrungenController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhangUeberweisungen" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhangUeberweisungen" fileUploadListener="#{kryptowaehrungenController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm"
+                                                 style="width: 100%;height:45px"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{kryptowaehrungenController.editAnhangKryptowaehrungenUeberweisungen()}"
+                                                 ajax="false"/>
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{kryptowaehrungenController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+
+                    </div>
+                </div>
+                <br/>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{kryptowaehrungenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

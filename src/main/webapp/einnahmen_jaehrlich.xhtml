@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Einnahmen: jährliche Entwicklung</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="3">
+                            <p:menuitem value="Einnahmen - Tabelle" outcome="einnahmen">
+                            </p:menuitem>
+                            <p:menuitem value="Einnahmen - Nach Kategorien" outcome="einnahmen_kategorien">
+                            </p:menuitem>
+                            <p:menuitem value="Einnahmen - Monatlich" outcome="einnahmen_monatlich">
+                            </p:menuitem>
+                            <p:menuitem value="Einnahmen - Jährlich" outcome="einnahmen_jaehrlich">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Einnahmen" outcome="einnahmen_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Einnahmen - jährliche Entwicklung: Tabelle</h2>
+                    <h4>Info: Hier werden manuell die jährlichen Einnahmen dokumentiert. Zu bearbeitende Datensätze werden automatisch jedes Jahr hinzugefügt. </h4>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{einnahmenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:black" action="#{einnahmenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:black" onclick="PF('notizEditor').clear();" action="#{einnahmenController.clearNotizen()}" icon="ui-icon-close" />
+                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{einnahmenController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            einnahmenTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="einnahmen" value="#{einnahmenController.einnahmenJahrList}" widgetVar="einnahmenTable"
+                                                  id="einnahmenTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{einnahmenController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{einnahmen.einnahmen_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{einnahmenController.filteredEinnahmenJahrList}">
+                                        <p:ajax event="cellEdit" listener="#{einnahmenController.editRowEinnahmenJahrEntwicklung}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Einnahmen - Jaehrlich" style="font-weight: bolder;position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('einnahmenTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <br/>
+                                                <h:outputText value="Summe aller jaehrlichen Einnahmen: #{einnahmenController.gesamtMonatJahrEinnahmen}€ "/>
+                                                <br/>
+                                                <h:outputText value="Monatliche Einnahmen: #{einnahmenController.einnahmenMonatSumme}€ -- "/>
+                                                <h:outputText value="Jaehrliche Einnahmen: #{einnahmenController.einnahmenJaehrlichSumme}€"/>
+                                                <br/>
+                                                <h:outputText value="Monatliche Ausgaben: #{einnahmenController.ausgabenMonatSumme}€ - Jährliche Ausgaben:  #{einnahmenController.ausgabenJaehrlichSumme}€"/>
+                                                <br/>
+                                                <h:outputText value="-> Ertrag (Gewinn) monatlich: #{einnahmenController.gewinnMonatlich}€ - Ertrag (Gewinn) jährlich:  #{einnahmenController.gewinnJaehrlich}€"/>
+                                                <br/>
+                                                <h:outputText value="~ Durchschnittliche monatliche Einnahmen: #{einnahmenController.durchschnittlicheMonatlicheEinnahmen}€ "/>
+                                                <br/>
+                                                <h:outputText value="#{einnahmenController.einnahmenBestimmtenJahres}"/>
+                                            </p:outputPanel>
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{einnahmenController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="einnahmenTabelleDaten" fileName="Einnahmen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="einnahmenTabelleDaten" fileName="Einnahmen"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="einnahmenTabelleDaten" fileName="Einnahmen" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="einnahmenTabelleDaten" fileName="Einnahmen" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="einnahmenTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="einnahmen"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column filterBy="#{einnahmen.einnahmen_id}" sortBy="#{einnahmen.einnahmen_id}" headerText="ID" style="width:120px" filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{einnahmen.einnahmen_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{einnahmen.einnahmen_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{einnahmen.jahr}" sortBy="#{einnahmen.jahr}" headerText="Jahr"  filterMatchMode="contains"
+                                                  style="width:500px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Jahr"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{einnahmen.jahr}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{einnahmen.jahr}" />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{einnahmen.betrag}" sortBy="#{einnahmen.betrag}" headerText="Betrag" filterMatchMode="contains">
+                                            <f:facet name="header">
+                                                <h:outputText value="Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{einnahmen.betrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{einnahmen.betrag}"  placeholder="#{einnahmen.betrag}" style="width:96%" label="Betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{einnahmen.bemerkungen}" sortBy="#{einnahmen.bemerkungen}" headerText="Bemerkungen" filterMatchMode="contains" style="width:400px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Bemerkungen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{einnahmen.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{einnahmen.bemerkungen}" placeholder="#{einnahmen.bemerkungen}" style="width:96%" label="Bemerkungen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel> 
+
+                                <p:contextMenu for="einnahmenTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('einnahmenTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{einnahmenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

@@ -1,0 +1,456 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Haushaltsverwaltung - Benutzerdefinierte Abfrage</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <h2>Benutzerdefinierte SQL-Abfragen der Datenbank von der Haushaltsverwaltung:</h2>
+                <h3>SQL-Abfragen von Datenlisten/Datenreihen (z.B.: Bücher)</h3>
+                <h:form id="listenForm">
+                    <p:panelGrid columns="2" style="width: 100%;border: none">
+
+                        <p:inputText id="listenSQL" value="#{benutzerdefiniertController.listenSQL}" style="width: 100%">
+                        </p:inputText>
+                        <p:commandButton value="OK" 
+                                         actionListener="#{benutzerdefiniertController.abfrageListenSQL()}" 
+                                         process="@this,listenSQL"
+                                         update="nachrichtGrowl"
+                                         style="width: 100%"
+                                         ajax="false" />
+                    </p:panelGrid>
+
+                    <p:outputPanel id="tabellebuecher" rendered="#{benutzerdefiniertController.isBuecher}">
+
+                        <p:dataTable  reflow="true" var="buecher" value="#{benutzerdefiniertController.buecherListenSQL}" widgetVar="buecherTable"
+                                      paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                      paginator="true" rows="20"
+                                      editable="true" editMode="cell"
+                                      id="tabelleBuecherDaten"
+                                      emptyMessage="Keine Bücher gefunden! " filteredValue="#{benutzerdefiniertController.filteredBuecherListenSQL}">
+                            <p:ajax event="cellEdit" listener="#{benutzerdefiniertController.onCellEdit(event)}" update="nachrichtGrowl" />
+
+                            <f:facet name="header">
+                                <p:outputPanel>
+                                    <h:outputText value="Alle Felder durchsuchen " />
+                                    <p:inputText id="globalFilter" onkeyup="PF('buecherTable').filter()" style="width:150px" placeholder="Stichwort eingeben..."/>
+
+                                </p:outputPanel>
+                            </f:facet>
+
+                            <f:facet name="{Exporters}">
+                                <h:commandLink>
+                                    <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="pdf" target="tabelleBuecherDaten" fileName="Buecher" encoding="iso-8859-15"/>
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xls" target="tabelleBuecherDaten" fileName="Bucher"/>
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="csv" target="tabelleBuecherDaten" fileName="Buecher" encoding="iso-8859-15"/>
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xml" target="tabelleBuecherDaten" fileName="Buecher" />
+                                </h:commandLink>
+
+                                <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                    <p:printer target="tabelleBuecherDaten" />
+                                </p:commandButton>
+
+                            </f:facet>
+
+                            <p:column filterBy="#{buecher.buecher_id}" headerText="ID" footerText="Filter: enthält" filterMatchMode="contains">
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.buecher_id}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.buecher_id}" style="width:96%" label="ID"  />
+                                    </f:facet>
+                                </p:cellEditor>
+
+                            </p:column>
+
+
+                            <p:column filterBy="#{buecher.buchtitel}" headerText="Buchtitel" footerText="Filter: enthält" filterMatchMode="contains">
+
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.buchtitel}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.buchtitel}" style="width:96%" label="Buchtitel"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.kategorie}" headerText="Kategorie" footerText="Filter: nach Kategorie" filterMatchMode="exact">
+                                <f:facet name="filter">
+                                    <p:selectOneMenu onchange="PF('buecherTable').filter()" >
+                                        <f:selectItem itemLabel="Kategorie auswählen" itemValue="#{null}" noSelectionOption="true" />
+                                        <f:selectItems value="#{benutzerdefiniertController.buecherkategorien}" />
+                                    </p:selectOneMenu>
+                                </f:facet>
+
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.kategorie}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:selectOneMenu value="#{benutzerdefiniertController.buecherkategorie}" style="width:100%">
+                                            <f:selectItems value="#{benutzerdefiniertController.buecherkategorien}" var="kategorieEintrag" 
+                                                           itemLabel="#{kategorieEintrag.kategoriebezeichnung}" itemValue="#{kategorieEintrag}"/>
+                                        </p:selectOneMenu>
+                                        <p:inputText value="#{buecher.kategorie}" style="width:96%" label="Kategorie"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.lagerort}" headerText="Lagerort" footerText="Filter: enthält" filterMatchMode="contains">
+
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.lagerort}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.lagerort}" style="width:96%" label="Lagerort"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.autor}" headerText="Autor" footerText="Filter: enthält" filterMatchMode="contains">
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.autor}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.autor}" style="width:96%" label="Autor"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.zustand}" headerText="Zustand" footerText="Filter: nach Zustand" filterMatchMode="exact">
+                                <f:facet name="filter">
+                                    <p:selectOneMenu onchange="PF('buecherTable').filter()" >
+                                        <f:selectItem itemLabel="Zustand auswählen" itemValue="#{null}" noSelectionOption="true" />
+                                        <f:selectItems value="#{benutzerdefiniertController.buecherzustaende}" />
+                                    </p:selectOneMenu>
+                                </f:facet>
+
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.zustand}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:selectOneMenu value="#{benutzerdefiniertController.buecherzustand}" style="width:100%">
+                                            <f:selectItems value="#{benutzerdefiniertController.buecherzustaende}" var="buecherzustandEintrag" 
+                                                           itemLabel="#{buecherzustandEintrag.zustandbezeichnung}" itemValue="#{buecherzustandEintrag}"/>
+                                        </p:selectOneMenu>
+                                        <p:inputText value="#{buecher.zustand}" style="width:96%" label="Kategorie"  />
+                                    </f:facet>
+                                </p:cellEditor>
+
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.isbn}" headerText="ISBN" footerText="Filter: enthält" filterMatchMode="contains">
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.isbn}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.isbn}" style="width:96%" label="ISBN"  />
+                                    </f:facet>
+                                </p:cellEditor>
+
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.jahr}" headerText="Jahr" footerText="Filter: enthält" filterMatchMode="contains">
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.jahr}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.jahr}" style="width:96%" label="Jahr"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.sprache}" headerText="Sprache" footerText="Filter: enthält" filterMatchMode="contains">
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.sprache}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.sprache}" style="width:96%" label="Sprache"  />
+                                    </f:facet>
+                                </p:cellEditor>
+
+                            </p:column>
+
+                            <p:column filterBy="#{buecher.informationen}" headerText="Informationen" footerText="Filter: enthält" filterMatchMode="contains">                                
+                                <p:cellEditor>
+                                    <f:facet name="output">
+                                        <h:outputText value="#{buecher.informationen}" />
+                                    </f:facet>
+                                    <f:facet name="input">
+                                        <p:inputText value="#{buecher.informationen}" style="width:96%" label="Informationen"  />
+                                    </f:facet>
+                                </p:cellEditor>
+                            </p:column>
+                        </p:dataTable>
+
+                    </p:outputPanel>      
+
+
+                    <p:outputPanel id="tabelleordnung" rendered="#{benutzerdefiniertController.isOrdnung}">
+
+                        <p:dataTable  reflow="true" var="ordnung" value="#{benutzerdefiniertController.ordnungListenSQL}" widgetVar="ordnungTable"
+                                      id="ordnungTableDaten"
+                                      sortMode="multiple"
+                                      paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                      paginator="true" rows="20"
+                                      emptyMessage="Keine Einträge gefunden! " filteredValue="#{benutzerdefiniertController.filteredOrdnungListenSQL}">
+
+                            <f:facet name="header">
+                                <p:outputPanel>
+                                    <h:outputText value="Alle Felder durchsuchen " />
+                                    <p:inputText id="globalFilter" onkeyup="PF('ordnungTable').filter()" style="width:150px" placeholder="Stichwort eingeben..."/>
+                                </p:outputPanel>
+                            </f:facet>
+
+                            <f:facet name="{Exporters}">
+                                <h:commandLink>
+                                    <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="pdf" target="ordnungTableDaten" fileName="Ordnung" encoding="iso-8859-15" />
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xls" target="ordnungTableDaten" fileName="Ordnung"/>
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="csv" target="ordnungTableDaten" fileName="Ordnung" encoding="iso-8859-15" />
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xml" target="ordnungTableDaten" fileName="Ordnung" />
+                                </h:commandLink>
+
+                                <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                    <p:printer target="ordnungTableDaten" />
+                                </p:commandButton>
+
+                            </f:facet>
+
+                            <p:column filterBy="#{ordnung.ordnung_id}" sortBy="#{ordnung.ordnung_id}" headerText="ID" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ordnung.ordnung_id}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ordnung.bezeichnung}" sortBy="#{ordnung.ordnung_id}" headerText="Bezeichnung" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ordnung.bezeichnung}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ordnung.kategorie}" headerText="Kategorie" footerText="Filter: nach Kategorie" filterMatchMode="exact">
+                                <f:facet name="filter">
+                                    <p:selectOneMenu onchange="PF('ordnungTable').filter()" >
+                                        <f:selectItem itemLabel="Kategorie auswählen" itemValue="#{null}" noSelectionOption="true" />
+                                        <f:selectItems value="#{benutzerdefiniertController.ordnungkategorien}" />
+                                    </p:selectOneMenu>
+                                </f:facet>
+                                <h:outputText value="#{ordnung.kategorie}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ordnung.lagerort}" headerText="Lagerort" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ordnung.lagerort}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ordnung.zustand}" headerText="Lagerort" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ordnung.zustand}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ordnung.informationen}" headerText="Informationen" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ordnung.informationen}" />
+                            </p:column>
+                        </p:dataTable>
+                    </p:outputPanel>   
+
+
+                    <p:outputPanel id="tabelleausgaben" rendered="#{benutzerdefiniertController.isAusgaben}">
+                        <h3 style="color:red">!!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h3>
+                        <p:dataTable  reflow="true" var="ausgaben" value="#{benutzerdefiniertController.ausgabenListenSQL}" widgetVar="ausgabenTable"
+                                      id="ausgabenTabelleDaten"
+                                      paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                      paginator="true" rows="20"
+                                      emptyMessage="Keine Einträge gefunden! " filteredValue="#{benutzerdefiniertController.filteredAusgabenListenSQL}">
+
+                            <f:facet name="header">
+                                <p:outputPanel>
+                                    <h:outputText value="Suche: " />
+                                    <p:inputText id="globalFilter" onkeyup="PF('ausgabenTable').filter()" style="width:150px" placeholder="Stichwort eingeben..."/>
+                                </p:outputPanel>
+                            </f:facet>
+
+                            <f:facet name="{Exporters}">
+                                <h:commandLink>
+                                    <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="pdf" target="ausgabenTabelleDaten" fileName="Ordnung" encoding="iso-8859-15" />
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xls" target="ausgabenTabelleDaten" fileName="Ordnung"/>
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="csv" target="ausgabenTabelleDaten" fileName="Ordnung" encoding="iso-8859-15" />
+                                </h:commandLink>
+
+                                <h:commandLink>
+                                    <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                    <p:dataExporter type="xml" target="ausgabenTabelleDaten" fileName="Ordnung" />
+                                </h:commandLink>
+
+                                <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                    <p:printer target="ausgabenTabelleDaten" />
+                                </p:commandButton>
+
+                            </f:facet>
+
+
+                            <p:column filterBy="#{ausgaben.ausgaben_id}" headerText="ID" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ausgaben.ausgaben_id}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ausgaben.bezeichnung}" headerText="Bezeichnung" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ausgaben.bezeichnung}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ausgaben.kategorie}" headerText="Kategorie" footerText="Filter: nach Kategorie" filterMatchMode="exact">
+                                <f:facet name="filter">
+                                    <p:selectOneMenu onchange="PF('ausgabenTable').filter()" 
+                                                     filter="true" filterMatchMode="contains">
+                                        <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                        <f:selectItems value="#{ausgabenController.ausgabenkategorien}" var="ausgabekateogrieEintrag"
+                                                       itemValue="#{ausgabekateogrieEintrag.kategoriebezeichnung}"  itemLabel="#{ausgabekateogrieEintrag.kategoriebezeichnung}"/>
+                                    </p:selectOneMenu>
+                                </f:facet>
+                                <h:outputText value="#{ausgaben.kategorie}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ausgaben.betrag}" headerText="Betrag" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ausgaben.betrag}" />
+                            </p:column>
+
+                            <p:column filterBy="#{ausgaben.ausgabezeitraum}" headerText="Ausgabezeitraum" footerText="Filter: nach Ausgabezeitraum z.B. Jährlich" filterMatchMode="exact">
+                                <f:facet name="filter">
+                                    <p:selectOneMenu onchange="PF('ausgabenTable').filter()" 
+                                                     filter="true" filterMatchMode="contains">
+                                        <f:selectItem itemLabel="Ausgabezeitraum auswählen" itemValue="" noSelectionOption="true" />
+                                        <f:selectItems value="#{ausgabenController.ausgabenausgabezeitraeume}" 
+                                                       var="ausgabenausgabezeitraeumeEintrag"
+                                                       itemLabel="#{ausgabenausgabezeitraeumeEintrag.ausgabezeitraumbezeichnung}"
+                                                       itemValue="#{ausgabenausgabezeitraeumeEintrag.ausgabezeitraumbezeichnung}"/>
+                                    </p:selectOneMenu>
+                                </f:facet>
+                                <h:outputText value="#{ausgaben.ausgabezeitraum}" />
+                            </p:column>
+                            <p:column filterBy="#{ausgaben.zahlungsdatum}" headerText="Zahlungsdatum" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ausgaben.zahlungsdatum}" />
+                            </p:column>
+                            <p:column filterBy="#{ausgaben.informationen}" headerText="Informationen" footerText="Filter: enthält" filterMatchMode="contains">
+                                <h:outputText value="#{ausgaben.informationen}" />
+                            </p:column>
+                        </p:dataTable>
+                    </p:outputPanel>      
+
+
+                </h:form>
+
+
+                <p:separator />
+
+                <h3>SQL-Abfragen von Werten (z.B.: Anzahl der Bücher von der Kategorie Thriller)</h3>
+                <h:form id="werteForm">
+                    <p:panelGrid columns="2" style="width: 100%;border: none">
+                        <p:inputText id="werteSQL" value="#{benutzerdefiniertController.werteSQL}" style="width: 100%">
+                        </p:inputText>
+                        <p:commandButton value="OK" 
+                                         actionListener="#{benutzerdefiniertController.abfragenWerteSQL()}" 
+                                         process="@this,werteSQL"
+                                         update="werteForm"
+                                         style="width: 100%"
+                                         ajax="false" />
+
+                    </p:panelGrid>
+                    <p:dataTable  reflow="true" var="werteabfrage" value="#{benutzerdefiniertController.werteabfragenListe}" widgetVar="werteabfrageTable"
+                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                  paginator="true" rows="20"
+                                  id="werteabfrageTable"
+                                  emptyMessage="Keine Einträge in der DB gefunden! " filteredValue="#{benutzerdefiniertController.filteredWerteabfragenListe}">
+                        <f:facet name="header">
+                            <p:outputPanel>
+                            </p:outputPanel>
+                        </f:facet>
+
+                        <f:facet name="{Exporters}">
+                            <h:commandLink>
+                                <img src="./css/pdf_icon.png" style="max-height:auto; max-width: 20%"/>
+                                <p:dataExporter type="pdf" target="werteabfrageTable" fileName="Abfrage_Datenbank" encoding="iso-8859-15"/>
+                            </h:commandLink>
+
+                            <h:commandLink>
+                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                <p:dataExporter type="xls" target="werteabfrageTable" fileName="Abfrage_Datenbank"/>
+                            </h:commandLink>
+
+                            <h:commandLink>
+                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                <p:dataExporter type="csv" target="werteabfrageTable" fileName="Abfrage_Datenbank" encoding="iso-8859-15"/>
+                            </h:commandLink>
+
+                            <h:commandLink>
+                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                <p:dataExporter type="xml" target="werteabfrageTable" fileName="Abfrage_Datenbank" />
+                            </h:commandLink>
+
+                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                <p:printer target="werteabfrageTable" />
+                            </p:commandButton>
+
+                        </f:facet>
+
+
+                        <p:column headerText="Wert" filterBy="#{werteabfrage.toString}" filterMatchMode="contains">
+                            <h:outputText value="#{werteabfrage.toString}" />
+                        </p:column>
+                    </p:dataTable>
+                </h:form>
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

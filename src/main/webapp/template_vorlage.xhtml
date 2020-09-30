@@ -1,0 +1,140 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+    <h:head>
+        <link href="./css/default.css" rel="stylesheet" type="text/css" />
+        <link href="./css/ticker.css" rel="stylesheet" type="text/css" />
+        <link href="./css/cssLayout.css" rel="stylesheet" type="text/css" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./css/favicon.png"/>
+        <link rel="icon" type="image/png" href="./css/favicon.png" sizes="192x192"/>
+        <meta name="theme-color" content="#3c9625"/>
+        <meta name="viewport" content="#{authentifizierungController.viewVersion}"/>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            PrimeFaces.locales ['de'] = {
+                closeText: 'Schließen',
+                prevText: 'Zurück',
+                nextText: 'Weiter',
+                monthNames: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+                monthNamesShort: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+                dayNames: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'],
+                dayNamesShort: ['Son', 'Mon', 'Die', 'Mit', 'Don', 'Fre', 'Sam'],
+                dayNamesMin: ['SO', 'MO', 'DI', 'MI ', 'DO', 'FR ', 'SA'],
+                weekHeader: 'Woche',
+                firstDay: 1,
+                isRTL: false,
+                showMonthAfterYear: false,
+                yearSuffix: '',
+                timeOnlyTitle: 'Nur Zeit',
+                timeText: 'Zeit',
+                hourText: 'Stunde',
+                minuteText: 'Minute',
+                secondText: 'Sekunde',
+                currentText: 'Aktuelles Datum',
+                ampm: false,
+                month: 'Monat',
+                week: 'Woche',
+                day: 'Tag',
+                allDayText: 'Ganzer Tag'
+            };
+
+
+        </script>
+
+    </h:head>
+    <h:body>
+        <div id="containerWebseite">
+            <div class="container-fluid">
+
+                <div class="ui-g" style="background-color: #eeeeee;margin-top:0px;margin-bottom:20px;margin-left: 0px;margin-right:0px" >
+                    <div class="ui-g-12">
+
+                        <p:growl id="nachrichtGrowl" showDetail="true" sticky="true" >
+                            <p:autoUpdate />
+                        </p:growl>
+                        <p:messages id="messages" showDetail="true" closable="true" >
+                        </p:messages>
+
+                        <h:form>
+                            <p:idleMonitor timeout="41600000">
+                                <p:ajax event="idle" listener="#{authentifizierungController.onIdle()}" update="messages" />
+                            </p:idleMonitor>
+                        </h:form>
+                    </div>
+
+                    <div class="ui-g-12 ui-md-4">
+                        <div id="top" class="top">
+                            <ui:insert name="top">
+                                <img src="./css/haushaltverwaltung_logo.png" style="max-width:100%; height:auto"/>
+                                <br/>
+                            </ui:insert>
+                        </div>
+                    </div>
+                    <div class="ui-g-12 ui-md-8" style="text-align: right;margin-top:25px">
+                        <div id="top" class="top">
+                            <p style="background:none;color:black;text-shadow: 0px 0px 15px black">
+                                <p:clock class="designdatum" pattern="dd.MM.yyyy"/>
+                            </p>
+                            <ui:insert name="top">
+                                <h:outputText value="Eingeloggter Benutzer:  #{benutzerController.benutzer.username}"  />
+                            </ui:insert>
+                        </div>
+                    </div>
+                </div>
+                <div class="ui-g">
+                    <div class="ui-g-12">
+                        <h:form>
+                            <p:megaMenu orientation="horizontal" style="width:100%;font-weight:bold">
+                                <p:menuitem value="Startseite" action="index" ajax="false" icon="fa fa-home"  style="font-weight:bold"/>
+                                <p:menuitem value="Ausgaben" action="ausgaben" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Einnahmen" action="einnahmen" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Vermögen" action="vermoegen" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Sparen" action="sparen" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Buecher" action="buecher" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Handel" action="handel" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Kryptowährungen" action="kryptowaehrungen" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Medien" action="medien_musik" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Reserven" action="reserven" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <p:menuitem value="Ordnung" action="ordnung" rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-database" style="font-weight:bold"/>
+                                <!-- WEITERE SEITEN HIER HINZUFÜGEN !!!-->
+
+                                <p:separator rendered="#{benutzerController.loggedIn}"/>
+                                <p:menuitem value="Ausloggen" action="#{benutzerController.logout}"  rendered="#{benutzerController.loggedIn}" ajax="false" icon="fa fa-close" style="font-weight:bold"/>
+                            </p:megaMenu>
+                        </h:form>
+                    </div>
+                    <div class="ui-g-12">
+                        <h:panelGrid columns="2" cellpadding="5" columnClasses="ui-grid-col-4,ui-grid-col-8" >
+                            <h:form>
+                                <p:commandButton action="#{authentifizierungController.showDesktopVersion()}" value="Desktop V." icon="ui-icon-arrow-4-diag" style="margin-right: 10px" />
+                                <p:commandButton action="#{authentifizierungController.showMobileVersion()}" value="Mobile V." icon="ui-icon-note" />
+                            </h:form>
+                        </h:panelGrid>
+                    </div>
+
+
+                    <div class="ui-g-12">
+
+                        <ui:insert name="content">
+
+                        </ui:insert>
+                    </div>
+
+                </div>
+                <div class="ui-g" style="margin-top: 10px">
+                    <div class="ui-g-12">
+                        <div id="bottom">
+                            <h5 style="text-align: center">(c) 2019 <br/> Entwickelt von Abderraouf Dridi (a.dridi)</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </h:body>
+</html>
+

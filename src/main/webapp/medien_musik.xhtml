@@ -1,0 +1,585 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Medien: Musik</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="0">
+                            <p:menuitem value="Musik - Tabelle" outcome="medien_musik">
+                            </p:menuitem>
+                            <p:menuitem value="Software - Tabelle" outcome="medien_software">
+                            </p:menuitem>
+                            <p:menuitem value="Videoclips - Tabelle" outcome="medien_videoclips">
+                            </p:menuitem>
+                            <p:menuitem value="Videos - Tabelle" outcome="medien_videos">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Medien" outcome="medien_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Musik - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{medienController.notiztext}" height="70" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{medienController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{medienController.clearNotizen()}" icon="ui-icon-close" />                
+                </h:form>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{medienController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{medienController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{medienController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{medienController.datensatzLoeschenRueckgangigMachenMusik()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{medienController.deleteIDMusik}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{medienController.datensatzLoeschenMedienMusik()}"
+                                                             ajax="true" style="width: 100%;height:40px"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{medienController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            musikTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="musik" value="#{medienController.medienMusikListe}" widgetVar="musikTable"
+                                                  id="musikTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{medienController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{musik.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{medienController.filteredMedienMusikListe}">
+                                        <p:ajax event="cellEdit" listener="#{medienController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Musik - Audiodateien" style="font-weight: bolder;position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('musikTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="musikTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{medienController.onToggleMusik}" />
+                                                </p:columnToggler>
+                                            </p:outputPanel>
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{medienController.datensaetzeAnzahlTextMusik}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="musikTabelleDaten" fileName="Musik" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="musikTabelleDaten" fileName="Musik" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="musikTabelleDaten" fileName="Musik" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="musikTabelleDaten" fileName="Musik" />
+                                            </h:commandLink>
+
+                                        </f:facet>
+
+
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="musikTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="medien_musik"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{medienController.datensatzLoeschenMedienMusik(musik.id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{musik.id}" sortBy="#{musik.id}" headerText="ID" style="width:120px" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[0]}" exportable="#{medienController.columnListMusik[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{musik.id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{musik.interpret}" sortBy="#{musik.interpret}" headerText="Interpret"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[1]}" exportable="#{medienController.columnListMusik[1]}"  style="width:400px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Interpret"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.interpret}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.interpret}" placeholder="#{musik.interpret}" style="width:96%" label="Interpret"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+                                        <p:column filterBy="#{musik.songname}" sortBy="#{musik.songname}" headerText="Songname"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[2]}" exportable="#{medienController.columnListMusik[2]}" style="width:400px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Songname"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.songname}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.songname}" placeholder="#{musik.songname}" style="width:96%" label="Songname"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{musik.alt}" sortBy="#{ausgaben.alt}" headerText="Alt" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListMusik[3]}" exportable="#{medienController.columnListMusik[3]}">
+
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('musikTable').filter()" 
+                                                                 >
+                                                    <f:converter converterId="javax.faces.Boolean"/>
+                                                    <f:selectItem itemLabel="_" itemValue=""/>
+                                                    <f:selectItem itemLabel="JA" itemValue="true"/>
+                                                    <f:selectItem itemLabel="nein" itemValue="false"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Alt"/>
+                                            </f:facet>
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.alt}" converter="booleanJaNeinConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu  value="#{musik.alt}">
+                                                        <f:selectItem itemLabel="JA" itemValue="#{true}"/>
+                                                        <f:selectItem itemLabel="nein" itemValue="#{false}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{musik.jahr}" sortBy="#{musik.jahr}" headerText="Jahr"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[4]}" exportable="#{medienController.columnListMusik[4]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Jahr"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.jahr}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.jahr}" placeholder="#{musik.jahr}" style="width:96%" label="Jahr"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{musik.genre}" sortBy="#{musik.genre}" headerText="Genre" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListMusik[5]}" exportable="#{medienController.columnListMusik[5]}" style="width:220px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('musikTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Genre auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienMusikGenreListe}" var="musikgenreEintrag"
+                                                                   itemValue="#{musikgenreEintrag.bezeichnung}"  itemLabel="#{musikgenreEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Genre"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.genre}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="genreDropdown" 
+                                                                     value="#{musik.genre}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="medienMusikGenreConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{musik.genre}" itemValue="#{musik.genre}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienMusikGenreListe}" var="musikgenreEintrag"
+                                                                       itemValue="#{musikgenreEintrag}"  itemLabel="#{musikgenreEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>
+
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{musik.code}" sortBy="#{musik.code}" headerText="Code" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[6]}" exportable="#{medienController.columnListMusik[6]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Code"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.code}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.code}"  placeholder="#{musik.code}" style="width:96%" label="Code"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{musik.link}" sortBy="#{musik.link}" headerText="Link" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[7]}" exportable="#{medienController.columnListMusik[7]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Link"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.link}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.link}"  placeholder="#{musik.link}" style="width:96%" label="Link"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{musik.bemerkungen}" sortBy="#{musik.bemerkungen}" headerText="Bemerkungen" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListMusik[8]}" exportable="#{medienController.columnListMusik[8]}" style="width:270px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Bemerkungen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{musik.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{musik.bemerkungen}"  placeholder="#{musik.bemerkungen}" style="width:96%" label="Bemerkungen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="musikTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('musikTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="interpret" value="Interpret: " />
+                                        <br/>
+                                        <p:inputText id="interpret" value="#{medienController.interpretMusik}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="songname" value="Songname: " />
+                                        <br/>
+                                        <p:inputText id="songname" value="#{medienController.songnameMusik}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:panelGrid columns="2" style="width: 100%;border: none; border-color: white">
+                                            <p:outputLabel for="altFeld" value="Alt: " style="margin-right: 0px;border: none; border-color: white"/>
+                                            <br/>
+                                            <p:selectBooleanButton class="booleanAuswahlButton" style="width: 100%;border: none; border-color: white;" id="altFeld" onLabel="JA" offLabel="nein" onIcon="ui-icon-check" offIcon="ui-icon-close" value="#{medienController.altMusik}"/>                                                
+                                        </p:panelGrid>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="jahr" value="Jahr: " />
+                                        <br/>
+                                        <p:inputText id="jahr" value="#{medienController.jahrMusik}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="genre" value="Genre: " />
+                                        <br/>
+                                        <p:outputPanel id="genreSelectmany">
+                                            <p:selectOneMenu id="genre" onchange="PF('musikTable').filter()" 
+                                                             value="#{medienController.genreEintragMusik}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienMusikGenreConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Genre auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienMusikGenreListe}" var="musikgenreEintrag"
+                                                               itemValue="#{musikgenreEintrag}"  itemLabel="#{musikgenreEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="code" value="Code:" />
+                                        <br/>
+                                        <p:inputText id="code" value="#{medienController.codeMusik}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="link" value="Link:" />
+                                        <br/>
+                                        <p:inputText id="link" value="#{medienController.linkMusik}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bemerkungen" value="Bemerkungen / Nativer Titel:" />
+                                        <br/>
+                                        <h5>Hier kann auch der native Titel (Titel in Fremdsprache des Songs oder der Musikdatei gespeichert werden.</h5>
+                                        <br/>
+                                        <p:inputText id="bemerkungen" value="#{medienController.bemerkungenMusik}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{medienController.speichernMedienMusik()}" 
+                                             process="hinzufuegenForm"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+                        <h4 style="font-weight: bold">Genre </h4>
+                        <h:form id="kategorieForm">
+
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="musikgenreKategorie" value="Genre (Musikgenre): " />
+                                        <br/>
+                                        <p:inputText id="musikgenreKategorie" value="#{medienController.neuMedienMusikGenre}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienMusikGenreSpeichern()}" 
+                                             icon="ui-icon-plusthick"
+                                             process="kategorieForm"
+                                             update="tabellenAnsicht,hinzufuegenForm:genreSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>                       
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Genre </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="genrekategorieLoeschen" value="Genre (Musikgenre): " />
+                                        <br/>
+                                        <p:selectOneMenu id="genrekategorieLoeschen" onchange="PF('musikTable').filter()" 
+                                                         value="#{medienController.deleteMedienMusikGenre}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienMusikGenreConverter"
+                                                         >
+                                            <f:selectItems value="#{medienController.medienMusikGenreListe}" var="genrekateogrieEintrag"
+                                                           itemValue="#{genrekateogrieEintrag}"  itemLabel="#{genrekateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Genre der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changekategorie" value="#{medienController.change_MedienMusikGenre}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienMusikGenreLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:genreSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{medienController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

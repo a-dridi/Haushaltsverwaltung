@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Haushaltsverwaltung - Kryptowaehrungen</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanelGlobal">
+                    <h2 style="font-weight: bold"> Kryptowährungen: </h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{kryptowaehrungenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{kryptowaehrungenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{kryptowaehrungenController.clearNotizen()}" icon="ui-icon-close" />                </h:form>
+                <p:separator/>
+                <br/>
+                <h:form>
+                    <p:tabMenu activeIndex="3">
+                        <p:menuitem value="Kauf/Verkauf" outcome="kryptowaehrungen">
+                        </p:menuitem>
+                        <p:menuitem value="Vermögen" outcome="kryptowaehrungen_vermoegen">
+                        </p:menuitem>
+                        <p:menuitem value="Überweisungen" outcome="kryptowaehrungen_ueberweisung">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Tabelle)" outcome="portfolio_zustand_tabelle">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Grafik)" outcome="portfolio_zustand">
+                        </p:menuitem>
+                    </p:tabMenu>
+                </h:form>
+                <br/>
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="font-weight: bold;background-color:orange;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-info-sign"/>   Zustand des Portfolios</h4></div>
+                    <div class="panel-body" >
+                        <h4>Zuwachs: Kryptowährungen - Tabelle </h4>
+                        <p:outputPanel id="zuwachsAusgabe">
+                            <h:form id="zuwachsTabelleForm">
+                                <p:dataTable  reflow="true" var="zuwachsVar" value="#{kryptowaehrungenController.zuwachsListe}" widgetVar="zuwachsTable"
+                                              id="zuwachsTabelleDaten"
+                                              paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                              paginator="true"
+                                              sortMode="multiple"
+                                              rows="10"
+                                              rowIndexVar="rowIndex"
+                                              rowKey="#{zuwachsVar.waehrung}"
+                                              emptyMessage="Keine Einträge gefunden! " filteredValue="#{kryptowaehrungenController.filteredZuwachsListe}">
+                                    <f:attribute name="collectionType" value="java.util.ArrayList" />
+                                    <f:facet name="header">
+                                        <p:outputPanel>
+                                            <h:outputText value="Kryptowaehrungen - Zuwachs zwischen dem letzten Euro-Wert und dem aktuellen Euro-Wert" style="position: relative; margin-left: 5px;margin-right: 20px"/>
+                                            <br/>
+                                            <p:inputText id="globalFilter" onkeyup="PF('zuwachsTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                            <br/>
+                                            <h:outputText value="Bemerkung: Eingabe für Zuwachsberechnung muss manuell erfolgen. Siehe Tabelle Vermoegen"/>
+                                        </p:outputPanel>
+
+                                    </f:facet>
+                                    <f:facet name="footer">
+                                        <h:commandLink>
+                                            <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="pdf" target="zuwachsTabelleDaten" fileName="Zuwachs_Kryptowaehrungen" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xls" target="zuwachsTabelleDaten" fileName="Zuwachs_Kryptowaehrungen"/>
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="csv" target="zuwachsTabelleDaten" fileName="Zuwachs_Kryptowaehrungen" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xml" target="zuwachsTabelleDaten" fileName="Zuwachs_Kryptowaehrungen" />
+                                        </h:commandLink>
+                                    </f:facet>
+
+                                    <f:facet name="{Exporters}">
+
+                                        <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                            <p:printer target="zuwachsTabelleDaten" />
+                                        </p:commandButton>
+
+                                        <p:commandButton process="zuwachsTabelleForm"
+                                                         icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="portfolio_zustand_tabelle"
+                                                         ajax="false"/>
+                                    </f:facet>
+                                    <p:column filterBy="#{zuwachsVar.waehrung}" sortBy="#{zuwachsVar.waehrung}" headerText="Kryptowaehrung" filterMatchMode="contains">
+                                        <h:outputText value="#{zuwachsVar.waehrung}" />
+                                    </p:column>
+
+                                    <p:column filterBy="#{zuwachsVar.betrag}" sortBy="#{zuwachsVar.betrag}" headerText="Betrag" filterMatchMode="contains">
+                                        <h:outputText value="#{zuwachsVar.betrag}" />
+                                    </p:column>
+                                    <p:column filterBy="#{zuwachsVar.wertineuroNeu}" sortBy="#{zuwachsVar.wertineuroNeu}" headerText="Wert in EURO" filterMatchMode="contains">
+                                        <h:outputText value="#{zuwachsVar.wertineuroNeu}" />
+                                    </p:column>
+
+                                    <p:column filterBy="#{zuwachsVar.zuwachsProzent}" sortBy="#{zuwachsVar.zuwachsProzent}" headerText="Zuwachs in % (Prozent)" filterMatchMode="contains">
+                                        <h:outputText value="#{zuwachsVar.zuwachsProzent}%"/>
+                                    </p:column>
+                                </p:dataTable>
+                            </h:form>
+                        </p:outputPanel>
+                    </div>
+                </div>
+
+
+
+                <br/>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{kryptowaehrungenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

@@ -1,0 +1,678 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Medien: Software</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="1">
+                            <p:menuitem value="Musik - Tabelle" outcome="medien_musik">
+                            </p:menuitem>
+                            <p:menuitem value="Software - Tabelle" outcome="medien_software">
+                            </p:menuitem>
+                            <p:menuitem value="Videoclips - Tabelle" outcome="medien_videoclips">
+                            </p:menuitem>
+                            <p:menuitem value="Videos - Tabelle" outcome="medien_videos">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Medien" outcome="medien_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Software - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{medienController.notiztext}" height="70" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{medienController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{medienController.clearNotizen()}" icon="ui-icon-close" />                </h:form>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{medienController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{medienController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{medienController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{medienController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{medienController.datensatzLoeschenRueckgangigMachenSoftware()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{medienController.deleteIDSoftware}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{medienController.datensatzLoeschenMedienSoftware()}"
+                                                             style="width: 100%;height:40px"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{medienController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            softwareTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="software" value="#{medienController.medienSoftwareListe}" widgetVar="softwareTable"
+                                                  id="softwareTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{medienController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{software.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{medienController.filteredMedienSoftwareListe}">
+                                        <p:ajax event="cellEdit" listener="#{medienController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Software " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('softwareTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="softwareTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{medienController.onToggleSoftware}" />
+                                                </p:columnToggler>
+                                                <br/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{medienController.datensaetzeAnzahlTextSoftware}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="softwareTabelleDaten" fileName="Software" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="softwareTabelleDaten" fileName="Software"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="softwareTabelleDaten" fileName="Software" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="softwareTabelleDaten" fileName="Software" />
+                                            </h:commandLink>
+
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="softwareTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="medien_software"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{medienController.datensatzLoeschenMedienSoftware(software.id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{software.id}" sortBy="#{software.id}" headerText="ID" style="width:120px" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[0]}" exportable="#{medienController.columnListSoftware[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{software.id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{software.programmname}" sortBy="#{software.programmname}" headerText="Programmname"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[1]}" exportable="#{medienController.columnListSoftware[1]}" style="width:400px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Programmname"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.programmname}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{software.programmname}" placeholder="#{software.programmname}" style="width:96%" label="Programmname"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{software.betriebssystem}" sortBy="#{software.betriebssystem}" headerText="Betriebssystem" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListSoftware[2]}" exportable="#{medienController.columnListSoftware[2]}" style="width:230px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('softwareTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Betriebssystem auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienSoftwareBetriebssystemListe}" var="betriebssystemkateogrieEintrag"
+                                                                   itemValue="#{betriebssystemkateogrieEintrag.bezeichnung}"  itemLabel="#{betriebssystemkateogrieEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Betriebssystem"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.betriebssystem}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="betriebssystemDropdown" 
+                                                                     value="#{software.betriebssystem}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="medienSoftwareBetriebssystemConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{software.betriebssystem}" itemValue="#{software.betriebssystem}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienSoftwareBetriebssystemListe}" var="betriebssystemkateogrieEintrag"
+                                                                       itemValue="#{betriebssystemkateogrieEintrag}"  itemLabel="#{betriebssystemkateogrieEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{software.hersteller}" sortBy="#{software.hersteller}" headerText="Hersteller" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListSoftware[3]}" exportable="#{medienController.columnListSoftware[3]}" style="width:230px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('softwareTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Hersteller auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienSoftwareHerstellerListe}" var="herstellerkateogrieEintrag"
+                                                                   itemValue="#{herstellerkateogrieEintrag.bezeichnung}"  itemLabel="#{herstellerkateogrieEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Hersteller"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.hersteller}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="herstellerDropdown" onchange="PF('softwareTable').filter()" 
+                                                                     value="#{software.hersteller}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="medienSoftwareHerstellerConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{software.hersteller}" itemValue="#{software.hersteller}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienSoftwareHerstellerListe}" var="herstellerkateogrieEintrag"
+                                                                       itemValue="#{herstellerkateogrieEintrag}"  itemLabel="#{herstellerkateogrieEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:160px" filterBy="#{software.sprache}" sortBy="#{software.sprache}" headerText="Sprache" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[4]}" exportable="#{medienController.columnListSoftware[4]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Sprache"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.sprache}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{software.sprache}"  placeholder="#{software.sprache}" style="width:96%" label="Sprache"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:160px" filterBy="#{software.version}" sortBy="#{software.version}" headerText="Version" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[5]}" exportable="#{medienController.columnListSoftware[5]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Version"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.version}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{software.version}"  placeholder="#{software.version}" style="width:96%" label="Version"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{software.sonstige_infos}" sortBy="#{software.sonstige_infos}" headerText="Sonstige Infos" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[6]}" exportable="#{medienController.columnListSoftware[6]}" style="width:280px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Sonstige Infos"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.sonstige_infos}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{software.sonstige_infos}"  placeholder="#{software.sonstige_infos}" style="width:96%" label="Sonstige Infos"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:160px" filterBy="#{software.link}" sortBy="#{software.link}" headerText="Link" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListSoftware[7]}" exportable="#{medienController.columnListSoftware[7]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Link"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{software.link}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{software.link}"  placeholder="#{software.link}" style="width:96%" label="Link"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:70px" headerText="D" exportable="false"
+                                                  visible="#{medienController.columnListSoftware[8]}">
+                                            <p:outputPanel rendered="#{software.anhang}">   
+                                                <p:button href="#{software.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="softwareTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('softwareTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="programmname" value="Programmname (Bezeichnung): " />
+                                        <br/>
+                                        <p:inputText id="programmname" value="#{medienController.programmnameSoftware}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="betriebssystem" value="Betriebssystem: " />
+                                        <br/>
+                                        <p:outputPanel id="betriebssystemkategorieSelectmany">
+                                            <p:selectOneMenu id="betriebssystem" onchange="PF('softwareTable').filter()" 
+                                                             value="#{medienController.betriebssystemEintragSoftware}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienSoftwareBetriebssystemConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Betriebssystem auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienSoftwareBetriebssystemListe}" var="betriebssystemkateogrieEintrag"
+                                                               itemValue="#{betriebssystemkateogrieEintrag}"  itemLabel="#{betriebssystemkateogrieEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>      
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="hersteller" value="Hersteller: " />
+                                        <br/>
+                                        <p:outputPanel id="herstellerkategorieSelectmany">
+                                            <p:selectOneMenu id="hersteller" onchange="PF('softwareTable').filter()" 
+                                                             value="#{medienController.herstellerEintragSoftware}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienSoftwareHerstellerConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Hersteller auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienSoftwareHerstellerListe}" var="herstellerkateogrieEintrag"
+                                                               itemValue="#{herstellerkateogrieEintrag}"  itemLabel="#{herstellerkateogrieEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprache" value="Sprache (NUR ENGLISCHE Bezeichnung der Sprache): " />
+                                        <br/>
+                                        <p:inputText id="sprache" value="#{medienController.spracheSoftware}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="version" value="Version: " />
+                                        <br/>
+                                        <p:inputText id="version" value="#{medienController.versionSoftware}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sonstige_infos" value="Sonstige Infos: " />
+                                        <br/>
+                                        <p:inputText id="sonstige_infos" value="#{medienController.sonstige_infosSoftware}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="link" value="Link: " />
+                                        <br/>
+                                        <p:inputText id="link" value="#{medienController.linkSoftware}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{medienController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{medienController.speichernMedienSoftware()}" 
+                                             process="hinzufuegenForm"
+                                             style="width: 100%;height:45px"
+                                             update="tabellenAnsicht"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <h4 style="font-weight: bold">Betriebssystem (Betriebssystem - Software) </h4>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="betriebssystemkategorieAdd" value="Betriebssystem:  " />
+                                        <br/>
+                                        <p:inputText id="betriebssystemkategorieAdd" value="#{medienController.neuMedienSoftwareBetriebssystem}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienSoftwareBetriebssystemSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:betriebssystemkategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="herstellerForm">
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <h4 style="font-weight: bold">Hersteller (Hersteller - Software) </h4>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategoriehersteller" value="Hersteller: " />
+                                        <br/>
+                                        <p:inputText id="kategoriehersteller" value="#{medienController.neuMedienSoftwareHersteller}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienSoftwareHerstellerSpeichern()}" 
+                                             process="herstellerForm"
+                                             update="tabellenAnsicht,herstellerForm,hinzufuegenForm:herstellerkategorieSelectmany,del_herstellerForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <h4 style="font-weight: bold">Betriebssystem (Betriebssystem - Software) </h4>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="betriebssystemkategorieLoeschen" value="Betriebssystem: " />
+                                        <br/>
+                                        <p:selectOneMenu id="betriebssystemkategorieLoeschen" onchange="PF('softwareTable').filter()" 
+                                                         value="#{medienController.deleteMedienSoftwareBetriebssystem}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienSoftwareBetriebssystemConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Betriebssystem auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{medienController.medienSoftwareBetriebssystemListe}" var="betriebssystemkateogrieEintrag"
+                                                           itemValue="#{betriebssystemkateogrieEintrag}"  itemLabel="#{betriebssystemkateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changebetriebssystem"  value="-> gelöschte Betriebssystem (Kategorie) der Datensätze auf folgenden Wert ändern: ">
+                                        </p:outputLabel>
+                                        <p:inputText id="changebetriebssystem" value="#{medienController.change_MedienSoftwareBetriebssystem}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienSoftwareBetriebssystemLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:betriebssystemkategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_herstellerForm">
+
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <h4 style="font-weight: bold">Hersteller (Hersteller - Software) </h4>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="loeschenhersteller" value="Hersteller: " />
+                                        <br/>
+                                        <p:selectOneMenu id="loeschenhersteller" onchange="PF('softwareTable').filter()" 
+                                                         value="#{medienController.deleteMedienSoftwareHersteller}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienSoftwareHerstellerConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Hersteller auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{medienController.medienSoftwareHerstellerListe}" var="herstellerkateogrieEintrag"
+                                                           itemValue="#{herstellerkateogrieEintrag}"  itemLabel="#{herstellerkateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="changehersteller"  value="-> gelöschte Hersteller (Kategorie) der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changehersteller" value="#{medienController.change_MedienSoftwareHersteller}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienSoftwareHerstellerLoeschen()}" 
+                                             process="del_herstellerForm"
+                                             update="del_herstellerForm,tabellenAnsicht,hinzufuegenForm:herstellerkategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_id" value="#{medienController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhang" fileUploadListener="#{medienController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{medienController.editAnhang()}"
+                                                 style="width: 100%;height:45px"
+                                                 ajax="false"/>
+
+
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{medienController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{medienController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

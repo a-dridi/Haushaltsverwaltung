@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- Startseite -->
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung</title>
+        <link href="./css/default.css" rel="stylesheet" type="text/css" />
+        <link href="./css/cssLayout.css" rel="stylesheet" type="text/css" />
+        
+    </h:head>
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <!--Loginformular oder Übersicht für eingeloggten Benutzer-->
+                <div class="seiteninhalt" style="margin-top:15px">
+                    <h:form id="loginForm">
+
+
+                        <p:panel id="loginformular" header="Bitte einloggen:" style="margin-bottom:10px;" rendered="#{not benutzerController.loggedIn}">
+
+
+                            <h:panelGrid columns="1" cellpadding="5" columnClasses="ui-grid-col-4,ui-grid-col-8" >
+                                <h:outputLabel for="username" value="Benutzername:" style="margin-right: 10px" />
+                                <h:inputText id="username" value="#{authentifizierungController.username}" required="true"/>
+                                <br/>
+                                <h:outputLabel for="password" value="Passwort:" style="margin-right: 10px; "/>
+                                <h:inputSecret id="password" value="#{authentifizierungController.password}" required="true"/>
+                                <br/>
+                                <p:commandButton value="Login" 
+                                                 id="loginbutton"
+                                                 action="#{authentifizierungController.login}" 
+                                                 icon="fa fa-arrow-circle-right
+                                                 "
+                                                 ajax="false"
+                                                 rendered="#{!benutzerController.loggedIn}"/>
+
+                            </h:panelGrid>
+
+
+                        </p:panel>
+                        <p:blockUI block="loginformular" trigger="loginbutton" />
+                    </h:form>
+
+                    <!--Benutzer eingeloggt-->
+                    <h:outputText style="font-weight: bolder; color: black;font-size:22px" 
+                                  value="Überblick - Startseite"
+                                  rendered="#{benutzerController.loggedIn}" /> 
+                    <br/>
+                    <p:outputPanel rendered="#{benutzerController.loggedIn}">
+                        <h4 class="first">Bemerkungen / Ankündigungen</h4>
+                        <h:form>
+                            <p:textEditor widgetVar="notizEditor" value="#{haushaltsverwaltungController.notiztext}" height="130" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                                <f:facet name="toolbar">
+                                    <span class="ql-formats">
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                        <button class="ql-strike"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <select class="ql-font"></select>
+                                        <select class="ql-size"></select>
+                                    </span>
+                                </f:facet>
+                            </p:textEditor>
+                            <p:commandButton value="Speichern" update="messages" style="background-color: green;color:black" action="#{haushaltsverwaltungController.speichernNotiz()}" icon="ui-icon-disk" />
+                            <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:black; margin-right: 10px" onclick="PF('notizEditor').clear();" action="#{haushaltsverwaltungController.clearNotizen()}" icon="ui-icon-close" />
+                            <h:outputText value="#{haushaltsverwaltungController.datumNotiztext}"/>
+                        </h:form>
+                        <p:separator/>
+                    </p:outputPanel>
+                    <h:outputText style="color: black" 
+                                  value="Herzlich Willkommen! #{authentifizierungController.username}, Bitte wählen Sie einen Punkt vom linken Menü aus."
+                                  rendered="#{benutzerController.loggedIn}" /> 
+                    <br/>
+                    <br/>
+                    <h:outputText style="color: black" 
+                                  value="Bemerkung: Anhang werden in ihrer Cloud (über WebDAV) gespeichert. "
+                                  rendered="#{benutzerController.loggedIn}" /> 
+                    <br/>
+                    <br/>
+                    <h:outputText style="color: black" 
+                                  value="Benutzerinformationen: "
+                                  rendered="#{benutzerController.loggedIn}" /> 
+                    <h:panelGrid columns="2" rendered="#{benutzerController.loggedIn}">
+                        <h:outputText value="Benutzername: " />
+                        <h:outputText id="emailaddresse" value="#{benutzerController.benutzer.username}"/>
+                    </h:panelGrid>
+                    <p:separator/>
+
+                    <br/>
+                    <h:form>
+                        <p:calendar id="inline" mode="inline" pattern="dd.MM.yyyy"  locale="de" navigator="true"/>
+                    </h:form>
+                </div>
+
+            </ui:define>
+        </ui:composition>
+
+    </h:body>
+</html>
+

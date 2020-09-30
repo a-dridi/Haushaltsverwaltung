@@ -1,0 +1,118 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Grafische Ansicht: Ausgaben</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="3">
+                            <p:menuitem value="Ausgaben - Tabelle" outcome="ausgaben">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Nach Kategorien" outcome="ausgaben_kategorien">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Budget" outcome="ausgaben_budget">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Ausgaben" outcome="ausgaben_grafik">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Kalender" outcome="ausgaben_kalender">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Ausgaben (nur regelmäßige Ausgaben) - Grafische Darstellung</h2>
+
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{ausgabenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{ausgabenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{ausgabenController.clearNotizen()}" icon="ui-icon-close" />
+                    <h:outputText value="#{ausgabenController.datumNotiztext}"/>
+                </h:form>
+                <br/>
+                <p:separator/>
+                <br/>
+                <h4> Monatliche Ausgaben in EURO - Verteilung nach Kategorien</h4>
+                <p:donutChart model="#{ausgabenController.chartBarAusgabenMonatlich}" style="width:100%;height:650px" widgetVar="ausgabenChart" />
+                <h:form>
+                    <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="exportChart()"/>
+                </h:form>
+
+                <p:dialog widgetVar="dlg" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                    <p:outputPanel id="output" layout="block" style="width:900px;height:800px"/>
+                </p:dialog>
+
+                <script type="text/javascript">
+                    function exportChart() {
+                        //export image
+                        $('#output').empty().append(PF('ausgabenChart').exportAsImage());
+
+                        //show the dialog
+                        PF('dlg').show();
+                    }
+                </script>
+                <br/>
+                <p:separator/>
+                <br/>
+                <h4> Jährliche Ausgaben in EURO - Verteilung nach Kategorien</h4>
+                <p:donutChart model="#{ausgabenController.chartBarAusgabenJaehrlich}" style="width:100%;height:650px" widgetVar="ausgabenChart2" />
+                <h:form>
+                    <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="zweiterexportChart()"/>
+                </h:form>
+
+                <p:dialog widgetVar="dlg2" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                    <p:outputPanel id="output2" layout="block" style="width:900px;height:800px"/>
+                </p:dialog>
+
+                <script type="text/javascript">
+                    function zweiterexportChart() {
+                        //export image
+                        $('#output2').empty().append(PF('ausgabenChart2').exportAsImage());
+
+                        //show the dialog
+                        PF('dlg2').show();
+                    }
+                </script>
+
+                <br/>
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{ausgabenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

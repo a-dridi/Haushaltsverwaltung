@@ -1,0 +1,111 @@
+
+.ui-inputswitch .ui-inputswitch-on {
+    height: 30px;
+}
+
+.ui-inputswitch .ui-inputswitch-off {
+    height: 30px;
+}
+
+.ui-inputswitch .ui-inputswitch-handle {
+    height: 30px;
+}
+
+
+#top {
+    position: relative;
+    background-color: #eeeeee;
+    color: green;
+    padding: 5px;
+    margin: 0px 0px 0px 0px;
+}
+
+#bottom {
+    position: relative;
+    background-color: #eeeeee;
+    padding: 5px;
+}
+
+#left {
+    float: left;
+    background-color: #eeeeee;
+    padding: 5px;
+}
+
+#right {
+    float: right;
+    background-color: #eeeeee;
+    padding: 5px;
+}
+
+.center_content {
+    position: relative;
+    padding: 5px;
+}
+
+.left_content {
+    padding: 5px;
+    margin-left: 170px;
+}
+
+.right_content {
+    background-color: #036fab;
+    padding: 5px;
+    margin: 0px 170px 0px 170px;
+}
+
+#top a:link, #top a:visited {
+    font-weight: normal;
+    text-decoration: none;
+}
+
+#top a:link {
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+
+#top a:link:hover, #top a:visited:hover  {
+    color: black;
+    font-weight: bold;
+
+    text-decoration : underline;
+}
+a:link:active  {
+    background-color: steelblue;
+}
+a:active:hover  {
+    background-color: steelblue;
+}
+a:visited:hover  {
+    background-color: steelblue;
+}
+.ui-clock {
+    padding: 4px 10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 17px;
+}
+
+.designdatum {
+    border-color: #48480d;
+    background-color:#ec0b43;
+    color: black;
+}
+.ui-widget-content{
+    background: #ffffff;
+}
+
+.ui-datatable-odd {
+    background-color: #fffaf4;
+}
+
+.ui-editable-column{
+    padding: 4px !important;
+}
+
+.ui-button-icon-left.ui-icon.ui-c.fa.fa-fw.fa-times {
+    margin-left: -4px;
+}

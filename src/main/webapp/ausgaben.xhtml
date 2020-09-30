@@ -1,0 +1,832 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Ausgaben</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="0">
+                            <p:menuitem value="Ausgaben - Tabelle" outcome="ausgaben">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Nach Kategorien" outcome="ausgaben_kategorien">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Budget" outcome="ausgaben_budget">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Ausgaben" outcome="ausgaben_grafik">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Kalender" outcome="ausgaben_kalender">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Ausgaben - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{ausgabenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{ausgabenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{ausgabenController.clearNotizen()}" icon="ui-icon-close" />
+                    <h:outputText value="#{ausgabenController.datumNotiztext}"/>
+                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{ausgabenController.scrollTabelle()}" value="Tabelle" icon="ui-icon-disk" />
+                            <p:commandButton action="#{ausgabenController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="fa fa-fw fa-plus" />
+                            <p:commandButton action="#{ausgabenController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{ausgabenController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{ausgabenController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="teilbetragAnsicht">
+                    <div class="panel panel-primary" style="border-color: #f500ed">
+                        <div class="panel-heading" style="background-color: #f500ed;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-duplicate"/>   Teilbeträge der (monatlichen) Ausgaben</h4></div>
+                        <div class="panel-body">
+
+
+                            <h4 style="font-weight: bold">Teilschlüssel für Personen berechnen  </h4>
+                            <h5 style="font-weight: bold">Bitte monatliches Einkommen für alle Personen eingeben <span style="font-weight: 900">(in €):</span> </h5>
+
+                            <h:form id="teilschluesselForm">
+                                <p:panelGrid id="teilschluesselberechnenPanel" style="width: 100%;border: none">
+                                    <p:row>
+                                        <p:column >
+                                            <p:inplace editor="true" style="font-weight:bold;">
+                                                <p:ajax event="save" listener="#{ausgabenController.speichernPersonname}" update="teilbetragAnsicht,teilschluesselForm:person1teileinkommen,teilschluesselForm:person2teileinkommen,teilbetragForm:person1teilschluessel,teilbetragForm:person1teilschluessel" />
+                                                <p:inputText id="person1namebezeichnung" value="#{ausgabenController.person1name}" required="true" label="Person A:"/>
+                                            </p:inplace>
+                                            <p:inputText id="person1teileinkommen" value="#{ausgabenController.person1einkommen}" style="width: 100%"/>
+                                        </p:column>
+                                        <p:column>
+                                            <p:inplace editor="true" style="font-weight:bold;">
+                                                <p:ajax event="save" listener="#{ausgabenController.speichernPersonname}" update="teilbetragAnsicht,teilschluesselForm:person1teileinkommen,teilschluesselForm:person2teileinkommen,teilbetragForm:person1teilschluessel,teilbetragForm:person1teilschluessel" />
+                                                <p:inputText id="person2namebezeichnung" value="#{ausgabenController.person2name}" required="true" label="Person B:"/>
+                                            </p:inplace>
+                                            <p:inputText id="person2teileinkommen" value="#{ausgabenController.person2einkommen}" style="width: 100%"/>
+                                        </p:column>
+                                    </p:row>
+                                    <p:row>
+                                        <p:column colspan="2">
+                                            <p:commandButton value="Teilschlüssel berechnen" 
+                                                             actionListener="#{ausgabenController.calculateTeilschlüssel()}" 
+                                                             process="teilschluesselForm"
+                                                             icon="ui-icon-transferthick-e-w"
+                                                             update="teilbetragAnsicht,teilschluesselForm:person1teileinkommen,teilschluesselForm:person2teileinkommen,teilbetragForm:person1teilschluessel,teilbetragForm:person1teilschluessel"
+                                                             style="width: 100%;height:45px; margin-top: 5px; margin-bottom: 7px"
+                                                             ajax="true" />                                            
+                                        </p:column>
+                                    </p:row>
+                                    <p:row styleClass="ui-widget-header" style="margin-top:5px; font-weight:bold; background-color: #f2f0f2">
+                                        <p:column>
+                                            <p:outputLabel value="Teilschlüssel für #{ausgabenController.person1name}: #{ausgabenController.person1aufteilung}" />
+                                        </p:column>
+                                        <p:column>
+                                            <p:outputLabel value="Teilschlüssel für #{ausgabenController.person2name}: #{ausgabenController.person2aufteilung}" />
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                            </h:form>
+
+                            <br/>
+                            <br/>
+
+                            <h4 style="font-weight: bold">Teilbeträge für Personen berechnen  </h4>
+                            <h5 style="font-weight: bold">Bitte Teilschlüssel für alle Personen eingeben <span style="font-weight: 900">(in Prozent - Summe von beiden immer 100)</span>: </h5>
+
+                            <h:form id="teilbetragForm">
+                                <p:panelGrid id="teilbetragberechnenPanel" style="width: 100%;border: none">
+                                    <p:row>
+                                        <p:column>
+                                            <p:outputLabel for="person1teilschluessel" value="#{ausgabenController.person1name}:" />
+                                            <p:inputText id="person1teilschluessel" value="#{ausgabenController.person1aufteilung}" style="width: 100%"/>
+                                            <p:slider for="person1teilschluessel">
+                                                <p:ajax event="slideEnd" listener="#{ausgabenController.updatePerson2TeilschluesselView()}" update="teilbetragForm:teilbetragberechnenPanel"/>
+                                            </p:slider>
+                                        </p:column>
+                                        <p:column>
+                                            <p:outputLabel for="person2teilschluessel" value="#{ausgabenController.person2name}:" />
+                                            <p:inputText id="person2teilschluessel" value="#{ausgabenController.person2aufteilung}" style="width: 100%"/>
+                                            <p:slider for="person2teilschluessel">
+                                                <p:ajax event="slideEnd" listener="#{ausgabenController.updatePerson1TeilschluesselView()}" update="teilbetragForm:teilbetragberechnenPanel"/>
+                                            </p:slider>
+                                        </p:column>
+                                    </p:row>
+                                    <p:row>
+                                        <p:column colspan="2" >
+                                            <p:commandButton value="Teilbeträge berechnen" 
+                                                             actionListener="#{ausgabenController.teilbetragEinstellungenSpeichern()}" 
+                                                             process="teilbetragForm"
+                                                             icon="ui-icon-transferthick-e-w"
+                                                             update="teilbetragAnsicht,teilbetragForm:teilbetragberechnenPanel,teilschluesselForm:person1teileinkommen,teilschluesselForm:person2teileinkommen,teilbetragForm:person1teilschluessel,teilbetragForm:person2teilschluessel,teilbetragForm:person1gesamteilbetragoutput,teilbetragForm:person2gesamteilbetragoutput"
+                                                             style="width: 100%;height:45px; margin-top: 5px; margin-bottom: 7px"
+                                                             ajax="true" />
+                                        </p:column>
+                                    </p:row>
+                                    <p:row styleClass="ui-widget-header" style="margin-top:5px; font-weight:bold; background-color: #f2f0f2">
+                                        <p:column>
+                                            <p:outputLabel id="person1gesamteilbetragoutput" value="Teilbetrag für #{ausgabenController.person1name}: #{ausgabenController.person1gesamtteilbetrag}€" />
+                                        </p:column>
+                                        <p:column>
+                                            <p:outputLabel id="person2gesamteilbetragoutput" value="Teilbetrag für #{ausgabenController.person2name}: #{ausgabenController.person2gesamtteilbetrag}€" />
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                            </h:form>
+                        </div>
+                    </div>
+
+                </p:outputPanel>
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{ausgabenController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+                            <h:form id="deleteForm">
+
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{ausgabenController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="tabellenAnsicht"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{ausgabenController.datensatzLoeschen()}"
+                                                             ajax="true" style="width: 100%;height:40px"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> Datum im folgenden Format eingeben: dd.mm.yyyy - z.B.: 22.12.2018</h4>
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+
+
+                                    <div class="well well-sm" style="border-color: skyblue;margin-top: 10px;margin-bottom: 0px">
+                                        <div class="row">
+                                            <div class="col-sm-3" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showAlteAusgaben()}" 
+                                                                 update="tabellenAnsicht" value="Alte Ausgaben anzeigen"
+                                                                 process="@this"
+                                                                 style="margin-right:auto;margin-left: auto"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-3" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showRegelmaessigeAusgaben()}" 
+                                                                 update="tabellenAnsicht" value="Regelmäßige Ausgaben"
+                                                                 process="@this"
+                                                                 style="margin-right:auto;margin-left: auto"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-3" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showAktuellesJahrAnsicht()}" 
+                                                                 update="tabellenAnsicht" value="Aktuelles Jahr"
+                                                                 process="@this"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-3" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showAktuellerMonatAnsicht()}" 
+                                                                 update="tabellenAnsicht" value="Aktueller Monat"
+                                                                 process="@this"
+                                                                 />
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-2" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showVorherigesJahrAnsicht()}" 
+                                                                 process="@this"
+                                                                 update="tabellenAnsicht" value="Jahr" icon="ui-icon-triangle-1-w"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-2" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showVorherigerMonatAnsicht()}" 
+                                                                 update="tabellenAnsicht" value="Monat" icon="ui-icon-triangle-1-w"
+                                                                 process="@this"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-2" style="margin-top:10px">
+                                                <h:form id="datumMonatJahrAuswahl">
+
+                                                    <p:calendar id="monatjahrAuswahl" value="#{ausgabenController.selectMonatJahr}" locale="de" navigator="true" 
+                                                                pattern="MM.yyyy" mask="true"
+                                                                style="width: 120px;" converter="dateConverterMonat"/>
+                                                    <p:commandButton action="#{ausgabenController.changeMonatJahrAnsicht()}" 
+                                                                     process="datumMonatJahrAuswahl"
+                                                                     update="tabellenAnsicht" value="OK"/>
+                                                </h:form>
+
+                                            </div>
+                                            <div class="col-sm-2" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showNaechstenMonatAnsicht()}" 
+                                                                 update="tabellenAnsicht" value="Monat" icon="ui-icon-triangle-1-e"
+                                                                 process="@this"
+                                                                 />
+                                            </div>
+                                            <div class="col-sm-2" style="margin-top:10px">
+                                                <p:commandButton action="#{ausgabenController.showNaechstesJahrAnsicht()}" 
+                                                                 update="tabellenAnsicht" value="Jahr" icon="ui-icon-triangle-1-e"
+                                                                 process="@this"
+                                                                 />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{ausgabenController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            ausgabenTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="ausgaben" value="#{ausgabenController.ausgabenListenSQL}" widgetVar="ausgabenTable"
+                                                  id="ausgabenTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{ausgabenController.rownumbers}"
+                                                  rowsPerPageTemplate="15,1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  draggableColumns="true"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{ausgaben.ausgaben_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{ausgabenController.filteredAusgabenListenSQL}"
+                                                  >
+                                        <p:ajax event="cellEdit" listener="#{ausgabenController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Ausgaben (#{ausgabenController.jahrmonat})" style="font-weight: bolder; position: relative; margin-left: 0px;margin-right: 7px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('ausgabenTable').filter()" style="width:150px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="ausgabenTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{ausgabenController.onToggle}" />
+                                                </p:columnToggler>
+                                                <br/>
+                                                <h:outputText value="Monatliche Ausgaben: #{ausgabenController.ausgabenMonatSumme}€ -- "/>
+                                                <h:outputText value="Jährliche Ausgaben: #{ausgabenController.ausgabenJaehrlichSumme}€"/>
+                                                <br/>
+                                                <h:outputText value="Monatliche Einnahmen: #{ausgabenController.einnahmenMonatSumme}€ - Jährliche Einahmen:  #{ausgabenController.einnahmenJaehrlichSumme}€"/>
+                                                <br/>
+                                                <h:outputText value="-> Ertrag (Gewinn) monatlich: #{ausgabenController.gewinnMonatlich}€ - Ertrag (Gewinn) jährlich:  #{ausgabenController.gewinnJaehrlich}€"/>
+                                                <br/>
+                                                <h:outputText value="~ Durchschnittliche Ausgaben pro Monat: #{ausgabenController.durchschnittlicheMonatlicheAusgaben}€ "/>
+                                                <br/>
+                                                <h:outputText value="#{ausgabenController.durchschnittlAusgabenBestimmterMonat} "/>
+
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{ausgabenController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="ausgabenTabelleDaten" fileName="Ausgaben" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="ausgabenTabelleDaten" fileName="Ausgaben"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="ausgabenTabelleDaten" fileName="Ausgaben" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="ausgabenTabelleDaten" fileName="Ausgaben" />
+                                            </h:commandLink>
+
+                                        </f:facet>
+
+                                        <f:facet name="{Exporters}">
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="ausgabenTabelleDaten" />
+                                            </p:commandButton>
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="ausgaben"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{ausgabenController.datensatzLoeschen(ausgaben.ausgaben_id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{ausgaben.ausgaben_id}" sortBy="#{ausgaben.ausgaben_id}" headerText="ID" style="width:120px" filterMatchMode="contains"
+                                                  visible="#{ausgabenController.columnList[0]}" exportable="#{ausgabenController.columnList[0]}">
+                                            <h:outputText value="#{ausgaben.ausgaben_id}" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{ausgaben.bezeichnung}" sortBy="#{ausgaben.bezeichnung}" headerText="Bezeichnung"  filterMatchMode="contains"
+                                                  visible="#{ausgabenController.columnList[1]}" exportable="#{ausgabenController.columnList[1]}" style="width:500px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Bezeichnung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.bezeichnung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ausgaben.bezeichnung}" placeholder="#{ausgaben.bezeichnung}" style="width:96%" label="Bezeichnung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{ausgaben.kategorie}" sortBy="#{ausgaben.kategorie}" headerText="Kategorie" filterMatchMode="exact"
+                                                  visible="#{ausgabenController.columnList[2]}" exportable="#{ausgabenController.columnList[2]}" style="width:300px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('ausgabenTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{ausgabenController.ausgabenkategorien}" var="ausgabekateogrieEintrag"
+                                                                   itemValue="#{ausgabekateogrieEintrag.kategoriebezeichnung}"  itemLabel="#{ausgabekateogrieEintrag.kategoriebezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Kategorie"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.kategorie}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="kategorieDropdown"
+                                                                     value="#{ausgaben.kategorie}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="susgabenKategorieConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{ausgaben.kategorie}" itemValue="#{ausgaben.kategorie}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{ausgabenController.ausgabenkategorien}" var="ausgabekateogrieEintrag"
+                                                                       itemValue="#{ausgabekateogrieEintrag}"  itemLabel="#{ausgabekateogrieEintrag.kategoriebezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{ausgaben.betrag}" sortBy="#{ausgaben.betrag}" headerText="Betrag" filterMatchMode="contains"
+                                                  visible="#{ausgabenController.columnList[3]}" exportable="#{ausgabenController.columnList[3]}">
+
+                                            <f:facet name="header">
+                                                <h:outputText value="Betrag"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.betrag}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ausgaben.betrag}"  placeholder="#{ausgaben.betrag}" style="width:96%" label="Betrag"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{ausgaben.ausgabezeitraum}" sortBy="#{ausgaben.ausgabezeitraum}" headerText="Ausgabezeitraum" filterMatchMode="exact"
+                                                  visible="#{ausgabenController.columnList[4]}" exportable="#{ausgabenController.columnList[4]}" style="width:200px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('ausgabenTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Zeitraum auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{ausgabenController.ausgabenausgabezeitraeume}" 
+                                                                   var="ausgabenausgabezeitraeumeEintrag"
+                                                                   itemLabel="#{ausgabenausgabezeitraeumeEintrag.ausgabezeitraumbezeichnung}"
+                                                                   itemValue="#{ausgabenausgabezeitraeumeEintrag.ausgabezeitraumbezeichnung}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Ausgabezeitraum"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.ausgabezeitraum}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="ausgabezeitraumDropdown"
+                                                                     value="#{ausgaben.ausgabezeitraum}" style="max-width:  100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="ausgabenZeitraumConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{ausgaben.ausgabezeitraum}" itemValue="#{ausgaben.ausgabezeitraum}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{ausgabenController.ausgabenausgabezeitraeume}" var="zeitraumEintrag" 
+                                                                       itemValue="#{zeitraumEintrag}" itemLabel="#{zeitraumEintrag.ausgabezeitraumbezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:140px" filterBy="#{ausgaben.zahlungsdatum}" sortBy="#{ausgaben.zahlungsdatum}" headerText="Zahlungsdatum" 
+                                                  filterMatchMode="contains" visible="#{ausgabenController.columnList[5]}" exportable="#{ausgabenController.columnList[5]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Zahlungsdatum"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.zahlungsdatum}" converter="dateConverter"/>
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:calendar placeholder="#{ausgaben.zahlungsdatum}" value="#{ausgaben.zahlungsdatum}" style="width:96%" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                                converter="dateConverter" label="Zahlungsdatum"></p:calendar>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{ausgaben.informationen}" sortBy="#{ausgaben.informationen}" headerText="Informationen" filterMatchMode="contains"
+                                                  visible="#{ausgabenController.columnList[6]}" exportable="#{ausgabenController.columnList[6]}" style="width:400px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Informationen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ausgaben.informationen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ausgaben.informationen}" placeholder="#{ausgaben.informationen}" style="width:96%" label="Informationen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{ausgaben.anhang}">   
+                                                <p:button href="#{ausgaben.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+
+                                        </p:column>
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="ausgabenTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('ausgabenTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bezeichnung" value="Bezeichnung: " /> 
+                                        <br/>
+                                        <p:inputText id="bezeichnung" value="#{ausgabenController.bezeichnung}" required="true" style="width: 100%"/> 
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorie" value="Kategorie: " />
+                                        <br/>
+                                        <p:outputPanel id="kategorieSelectmany">
+                                            <p:selectOneMenu id="kategorie" onchange="PF('ausgabenTable').filter()" 
+                                                             value="#{ausgabenController.ausgabenkategorie}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="susgabenKategorieConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Ausgaben-Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{ausgabenController.ausgabenkategorien}" var="ausgabekateogrieEintrag"
+                                                               itemValue="#{ausgabekateogrieEintrag}"  itemLabel="#{ausgabekateogrieEintrag.kategoriebezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>        
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="betrag" value="Betrag: (Format: 26.50)" />
+                                        <br/>
+                                        <p:inputText id="betrag" value="#{ausgabenController.betrag}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgabezeitraum" value="Ausgabezeitraum: " />
+                                        <br/>
+                                        <p:outputPanel id="ausgabezeitraumSelectmany">
+                                            <p:selectOneMenu id="ausgabezeitraum" onchange="PF('ausgabenTable').filter()" 
+                                                             value="#{ausgabenController.ausgabenausgabezeitraum}" style="max-width:  100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             required="true"
+                                                             converter="ausgabenZeitraumConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Zeitraum auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{ausgabenController.ausgabenausgabezeitraeume}" var="zeitraumEintrag" 
+                                                               itemValue="#{zeitraumEintrag}" itemLabel="#{zeitraumEintrag.ausgabezeitraumbezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>        
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="zahlungsdatum" value="Zahlungsdatum: (Format: dd.mm.yyyy) " />
+                                        <br/>
+                                        <h5>Wenn nichts angegeben wird, dann wird das heutige Datum übernommen</h5>
+                                        <p:calendar id="zahlungsdatum" value="#{ausgabenController.zahlungsdatum}" locale="de" navigator="true" pattern="dd.MM.yyyy" 
+                                                    style="width: 100%" converter="dateConverter"/>
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="informationen" value="Informationen: " />
+                                        <br/>
+                                        <p:inputText id="informationen" value="#{ausgabenController.informationen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{ausgabenController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                        <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{ausgabenController.speichern()}" 
+                                             process="hinzufuegenForm"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" >
+                            </p:commandButton>
+                        </h:form>
+
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieAusgabenkategorie" value="Kategorie (Ausgabenkategorie): " />
+                                        <br/>
+                                        <p:inputText id="kategorieAusgabenkategorie" value="#{ausgabenController.neuAusgabenkategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{ausgabenController.kategorieSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:kategorieSelectmany,del_ausgabezeitraumForm,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="ausgabezeitraumForm">
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieAusgabenausgabezeitraum" value="Ausgabezeitraum: " />
+                                        <br/>
+                                        <p:inputText id="kategorieAusgabenausgabezeitraum" value="#{ausgabenController.neuAusgabenausgabezeitraum}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{ausgabenController.ausgabezeitraumSpeichern()}" 
+                                             process="ausgabezeitraumForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:ausgabezeitraumSelectmany,del_ausgabezeitraumForm,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie (Ausgabenkategorie) </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgabenkategorieLoeschen" value="Kategorie (Ausgabenkategorie): " />
+                                        <br/>
+                                        <p:selectOneMenu id="ausgabenkategorieLoeschen" onchange="PF('ausgabenTable').filter()" 
+                                                         value="#{ausgabenController.deleteAusgabenkategorie}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="susgabenKategorieConverter"
+                                                         >
+                                            <f:selectItems value="#{ausgabenController.ausgabenkategorien}" var="ausgabekateogrieEintrag"
+                                                           itemValue="#{ausgabekateogrieEintrag}"  itemLabel="#{ausgabekateogrieEintrag.kategoriebezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: "/>
+                                        <br/>
+                                        <p:inputText id="changekategorie" value="#{ausgabenController.change_Kategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{ausgabenController.kategorieLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:kategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_ausgabezeitraumForm">
+                            <h4 style="font-weight: bold">Ausgabezeitraum </h4>
+
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="loeschenAusgabenausgabezeitraum" value="Ausgabezeitraum: " />
+                                        <br/>
+                                        <p:selectOneMenu id="loeschenAusgabenausgabezeitraum" onchange="PF('ausgabenTable').filter()" 
+                                                         value="#{ausgabenController.deleteAusgabenausgabezeitraum}" style="max-width:  100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="ausgabenZeitraumConverter"
+                                                         >
+                                            <f:selectItems value="#{ausgabenController.ausgabenausgabezeitraeume}" var="zeitraumEintrag" 
+                                                           itemValue="#{zeitraumEintrag}" itemLabel="#{zeitraumEintrag.ausgabezeitraumbezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changeausgabezeitraum"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: "/>
+                                        <br/>
+                                        <p:inputText id="changeausgabezeitraum" value="#{ausgabenController.change_ausgabezeitraum}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{ausgabenController.ausgabezeitraumLoeschen}" 
+                                             process="del_ausgabezeitraumForm"
+                                             icon="ui-icon-trash"
+                                             update="del_ausgabezeitraumForm,tabellenAnsicht,hinzufuegenForm:ausgabezeitraumSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <p:row>
+                                    <p:column> 
+                                        <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                        <br/>
+                                        <p:inputText id="anhang_id" value="#{ausgabenController.anhangID}" style="width:100%"/>
+                                        <br/>
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhang" fileUploadListener="#{ausgabenController.anhangSpeichern}" mode="advanced"
+                                                       update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                        <br/>
+                                        <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                         icon="ui-icon-check" value="Anhang bearbeiten" action="#{ausgabenController.editAnhang()}"
+                                                         style="width: 100%;height:45px"
+                                                         ajax="false"/>
+
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{ausgabenController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{ausgabenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

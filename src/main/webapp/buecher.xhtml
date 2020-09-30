@@ -1,0 +1,626 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:pe="http://primefaces.org/ui/extensions">
+    <h:head>
+        <title>Haushaltsverwaltung - Buecher</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="0">
+                            <p:menuitem value="Buecher - Tabelle" outcome="buecher">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Buecher" outcome="buecher_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+                    <h2>Buecher - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{buecherController.notiztext}" height="50" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{buecherController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{buecherController.clearNotizen()}" icon="ui-icon-close" />
+                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{buecherController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{buecherController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{buecherController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{buecherController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{buecherController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{buecherController.datensatzLoeschen()}"
+                                                             ajax="true"
+                                                             style="width: 100%;height:40px"                                                     
+                                                             />
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+                                    <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: E-Books/PDFs werden IMMER mit dem Zustand "Digital" gespeichert!</h4>
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{buecherController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            buecherTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="buecher" value="#{buecherController.buecherListe}" widgetVar="buecherTable"
+                                                  id="buecherTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{buecherController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{buecher.buecher_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{buecherController.filteredBuecherListe}">
+                                        <p:ajax event="cellEdit" listener="#{buecherController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Buecher " style="font-weight: bolder;position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('buecherTable').filter()" style="width:150px" placeholder="Suchen..."/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="buecherTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{buecherController.onToggle}" />
+                                                </p:columnToggler>
+                                            </p:outputPanel>
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{buecherController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="buecherTabelleDaten" fileName="Buecher" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="buecherTabelleDaten" fileName="Buecher"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="buecherTabelleDaten" fileName="Buecher" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="buecherTabelleDaten" fileName="Buecher" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+                                        <f:facet name="{Exporters}">
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="buecherTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="buecher"
+                                                             ajax="false"/>
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{buecherController.datensatzLoeschen(buecher.buecher_id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{buecher.buecher_id}" sortBy="#{buecher.buecher_id}" headerText="ID" style="width:120px" 
+                                                  filterMatchMode="contains" visible="#{buecherController.columnList[0]}" exportable="#{buecherController.columnList[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.buecher_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{buecher.buecher_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{buecher.buchtitel}" sortBy="#{buecher.buchtitel}" headerText="Titel" filterMatchMode="contains"
+                                                  visible="#{buecherController.columnList[1]}" exportable="#{buecherController.columnList[1]}" style="width:500px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Titel"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.buchtitel}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{buecher.buchtitel}" placeholder="#{buecher.buchtitel}" style="width:96%" label="Bezeichnung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{buecher.kategorie}" sortBy="#{buecher.kategorie}" headerText="Kategorie" filterMatchMode="exact"
+                                                  visible="#{buecherController.columnList[2]}" exportable="#{buecherController.columnList[2]}" style="width:300px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('buecherTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{buecherController.buecherkategorien}" var="buecherkateogrieEintrag"
+                                                                   itemValue="#{buecherkateogrieEintrag.kategoriebezeichnung}"  itemLabel="#{buecherkateogrieEintrag.kategoriebezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Kategorie"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.kategorie}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="kategorieDropdown"
+                                                                     value="#{buecher.kategorie}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="buecherKategorieConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{buecher.kategorie}" itemValue="#{buecher.kategorie}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{buecherController.buecherkategorien}" var="buecherkategorieEintrag"
+                                                                       itemValue="#{buecherkategorieEintrag}"  itemLabel="#{buecherkategorieEintrag.kategoriebezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column  filterBy="#{buecher.lagerort}" sortBy="#{buecher.lagerort}" headerText="Lagerort" filterMatchMode="contains"
+                                                   visible="#{buecherController.columnList[3]}" exportable="#{buecherController.columnList[3]}" style="width:330px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Lagerort"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.lagerort}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{buecher.lagerort}"  placeholder="#{buecher.lagerort}" style="width:96%" label="Lagerort"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{buecher.zustand}" sortBy="#{buecher.zustand}"  headerText="Zustand" filterMatchMode="exact"
+                                                  visible="#{buecherController.columnList[4]}" exportable="#{buecherController.columnList[4]}" style="width:200px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('buecherTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Zustand auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{buecherController.buecherzustaende}" 
+                                                                   var="zustandEintrag"
+                                                                   itemLabel="#{zustandEintrag.zustandbezeichnung}"
+                                                                   itemValue="#{zustandEintrag.zustandbezeichnung}"/>
+                                                </p:selectOneMenu>
+
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Zustand"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.zustand}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="zustandDropdown" 
+                                                                     value="#{buecher.zustand}" style="max-width:  100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="buecherZustandConverter"
+                                                                     required="true"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{buecher.zustand}" itemValue="#{buecher.zustand}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{buecherController.buecherzustaende}" var="buecherZustandEintrag" 
+                                                                       itemValue="#{buecherZustandEintrag}" itemLabel="#{buecherZustandEintrag.zustandbezeichnung}"/>
+                                                    </p:selectOneMenu>                                                
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{buecher.sprache}" sortBy="#{buecher.sprache}" headerText="Sprache" filterMatchMode="contains"
+                                                  visible="#{buecherController.columnList[5]}" exportable="#{buecherController.columnList[5]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Sprache"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.sprache}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{buecher.sprache}" placeholder="#{buecher.sprache}" label="Sprache"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+                                        <p:column style="width:120px" filterBy="#{buecher.isbn}" sortBy="#{buecher.isbn}" headerText="ISBN" filterMatchMode="contains"
+                                                  visible="#{buecherController.columnList[6]}" exportable="#{buecherController.columnList[6]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="ISBN"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.isbn}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{buecher.isbn}" placeholder="#{buecher.isbn}" label="ISBN"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{buecher.informationen}" sortBy="#{buecher.informationen}" headerText="Informationen" 
+                                                  filterMatchMode="contains" visible="#{buecherController.columnList[7]}" exportable="#{buecherController.columnList[7]}" style="width:300px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Informationen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{buecher.informationen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{buecher.informationen}" placeholder="#{buecher.informationen}" style="width:96%" label="Informationen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="buecherTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('buecherTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <h4 style="color:red"><span class="glyphicon glyphicon-exclamation-sign"/> !!! WICHTIG: E-Books/PDFs werden IMMER mit dem Zustand "Digital" gespeichert!</h4>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="titel" value="Titel (Buchtitel - Autoren): " />
+                                        <br/>
+                                        <p:inputText id="titel" value="#{buecherController.buchtitel}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="lagerort" value="Lagerort: " />
+                                        <br/>
+                                        <p:inputText id="lagerort" value="#{buecherController.lagerort}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorie" value="Kategorie: " />
+                                        <br/>
+                                        <p:outputPanel id="kategorieSelectmany">
+                                            <p:selectOneMenu id="kategorie" onchange="PF('buecherTable').filter()" 
+                                                             value="#{buecherController.buecherkategorie}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="buecherKategorieConverter" 
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{buecherController.buecherkategorien}" var="buecherkategorieEintrag"
+                                                               itemValue="#{buecherkategorieEintrag}"  itemLabel="#{buecherkategorieEintrag.kategoriebezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="zustand" value="Zustand: " />
+                                        <br/>
+                                        <p:outputPanel id="zustandSelectmany">
+                                            <p:selectOneMenu id="zustand" onchange="PF('buecherTable').filter()" 
+                                                             value="#{buecherController.buecherzustand}" style="max-width:  100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="buecherZustandConverter"
+                                                             required="true"
+                                                             >
+                                                <f:selectItem itemLabel="Zustand auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{buecherController.buecherzustaende}" var="buecherZustandEintrag" 
+                                                               itemValue="#{buecherZustandEintrag}" itemLabel="#{buecherZustandEintrag.zustandbezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprache" value="Sprache: " />
+                                        <br/>
+                                        <p:inputText id="sprache" value="#{buecherController.sprache}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="isbn" value="ISBN: " />
+                                        <br/>
+                                        <p:inputText id="isbn" value="#{buecherController.isbn}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="informationen" value="Informationen: " />
+                                        <br/>
+                                        <p:inputText id="informationen" value="#{buecherController.informationen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{buecherController.speichern()}" 
+                                             icon="ui-icon-circle-plus"
+                                             process="hinzufuegenForm"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+                        <h4 style="font-weight: bold">Kategorie (Bücherkategorie) </h4>
+
+                        <h:form id="kategorieForm">
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieBuecherkategorie" value="Kategorie (Bücherkategorie): " />
+                                        <br/>
+                                        <p:inputText id="kategorieBuecherkategorie" value="#{buecherController.neuKategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{buecherController.kategorieSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:kategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="ausgabezeitraumForm">
+                            <h4 style="font-weight: bold">Zustand </h4>
+
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieAusgabenausgabezeitraum" value="Zustand: " />
+                                        <br/>
+                                        <p:inputText id="kategorieAusgabenausgabezeitraum" value="#{buecherController.neuBuecherzustand}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{buecherController.zustandSpeichern()}" 
+                                             process="ausgabezeitraumForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:zustandSelectmany,del_ausgabezeitraumForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie (Bücherkategorie) </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgabenkategorieLoeschen" value="Namen der Kategorie: " />
+                                        <br/>
+                                        <p:selectOneMenu id="ausgabenkategorieLoeschen" onchange="PF('buecherTable').filter()" 
+                                                         value="#{buecherController.deleteBuecherkategorie}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="buecherKategorieConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{buecherController.buecherkategorien}" var="buecherkategorieEintrag"
+                                                           itemValue="#{buecherkategorieEintrag}"  itemLabel="#{buecherkategorieEintrag.kategoriebezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: ">
+                                        </p:outputLabel>
+                                        <br/>
+                                        <p:inputText id="changekategorie" value="#{buecherController.change_Kategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{buecherController.kategorieLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:kategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                        <br/>
+                        <br/>
+                        <h:form id="del_ausgabezeitraumForm">
+                            <h4 style="font-weight: bold">Zustand </h4>
+
+                            <p:panelGrid columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="loeschenAusgabenausgabezeitraum" value="Name des Zustands: " />
+                                        <br/>
+                                        <p:selectOneMenu id="loeschenAusgabenausgabezeitraum" onchange="PF('buecherTable').filter()" 
+                                                         value="#{buecherController.deleteBuecherzustand}" style="max-width:  100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="buecherZustandConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Zustand auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{buecherController.buecherzustaende}" var="buecherZustandEintrag" 
+                                                           itemValue="#{buecherZustandEintrag}" itemLabel="#{buecherZustandEintrag.zustandbezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changeausgabezeitraum"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: ">
+                                        </p:outputLabel>
+                                        <br/>
+                                        <p:inputText id="changeausgabezeitraum" value="#{buecherController.change_Buecherzustand}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{buecherController.zustandLoeschen()}" 
+                                             process="del_ausgabezeitraumForm"
+                                             icon="ui-icon-trash"
+                                             update="del_ausgabezeitraumForm,tabellenAnsicht,hinzufuegenForm:zustandSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{buecherController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

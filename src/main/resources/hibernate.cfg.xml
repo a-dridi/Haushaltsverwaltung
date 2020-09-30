@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC "-//Hibernate/Hibernate Configuration DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="enable_lazy_load_no_trans">true</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+        <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://127.0.0.1:5432/haushaltsverwaltung</property>
+        <property name="hibernate.connection.username">postgres</property>
+        <property name="hibernate.connection.password">postgres</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="hibernate.id.new_generator_mappings">true</property>
+
+        <mapping class="haushaltsverwaltung.model.DatenbankNotizen"/>
+        <mapping class="haushaltsverwaltung.model.Ausgaben"/>
+        <mapping class="haushaltsverwaltung.model.Ausgabenausgabezeitraum"/>
+        <mapping class="haushaltsverwaltung.model.Ausgabenkategorie"/>
+        <mapping class="haushaltsverwaltung.model.Buecher"/>
+        <mapping class="haushaltsverwaltung.model.Buecherkategorie"/>
+        <mapping class="haushaltsverwaltung.model.Buecherzustand"/>
+        <mapping class="haushaltsverwaltung.model.Ordnung"/>
+        <mapping class="haushaltsverwaltung.model.Ordnungkategorie"/>
+        <mapping class="haushaltsverwaltung.model.Einnahmen"/>
+        <mapping class="haushaltsverwaltung.model.EinnahmenKategorie"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenExchange"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenKaufVerkauf"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenUeberweisungen"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenVermoegen"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenVorgang"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenWaehrungen"/>
+        <mapping class="haushaltsverwaltung.model.KryptowaehrungenWerteVerz"/>
+        <mapping class="haushaltsverwaltung.model.MedienMusik"/>
+        <mapping class="haushaltsverwaltung.model.MedienMusikGenre"/>
+        <mapping class="haushaltsverwaltung.model.MedienSoftware"/>
+        <mapping class="haushaltsverwaltung.model.MedienSoftwareBetriebssystem"/>
+        <mapping class="haushaltsverwaltung.model.MedienSoftwareHersteller"/>
+        <mapping class="haushaltsverwaltung.model.MedienVideoclips"/>
+        <mapping class="haushaltsverwaltung.model.MedienVideoclipsSprache"/>
+        <mapping class="haushaltsverwaltung.model.MedienVideos"/>
+        <mapping class="haushaltsverwaltung.model.MedienVideosGenre"/>
+        <mapping class="haushaltsverwaltung.model.MedienVideosSprache"/>
+        <mapping class="haushaltsverwaltung.model.Vermoegen"/>
+        <mapping class="haushaltsverwaltung.model.VermoegenJaehrlich"/>
+        <mapping class="haushaltsverwaltung.model.Handel"/>
+        <mapping class="haushaltsverwaltung.model.Reserven"/>
+        <mapping class="haushaltsverwaltung.model.ReservenKategorie"/>
+        <mapping class="haushaltsverwaltung.model.ReservenWaehrung"/>
+        <mapping class="haushaltsverwaltung.model.AusgabenBudget"/>
+        <mapping class="haushaltsverwaltung.model.EinnahmenJahrEntwicklung"/>
+        <mapping class="haushaltsverwaltung.model.EinnahmenMonatEntwicklung"/>
+        <mapping class="haushaltsverwaltung.model.Sparen"/>
+        <mapping class="haushaltsverwaltung.model.SparenHaeufigkeit"/>
+        <mapping class="haushaltsverwaltung.model.Appsettings"/>
+
+    </session-factory>
+</hibernate-configuration>

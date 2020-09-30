@@ -1,0 +1,524 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core" >
+    <h:head>
+        <title>Haushaltsverwaltung - Ordnung</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h2>Ordnung - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{ordnungController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{ordnungController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{ordnungController.clearNotizen()}" icon="ui-icon-close" />                </h:form>
+                <br/>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{ordnungController.scrollTabelle()}" value="Tabelle" icon="ui-icon-disk" />
+                            <p:commandButton action="#{ordnungController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{ordnungController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{ordnungController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                            <p:commandButton action="#{ordnungController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{ordnungController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{ordnungController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="tabellenAnsicht"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{ordnungController.datensatzLoeschen()}"
+                                                             style="width: 100%;height:40px"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{ordnungController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            ordnungTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="ordnung" value="#{ordnungController.ordnungListenSQL}" widgetVar="ordnungTable"
+                                                  id="ordnungTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{ordnungController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{ordnung.ordnung_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{ordnungController.filteredOrdnungListenSQL}">
+                                        <p:ajax event="cellEdit" listener="#{ordnungController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Ordnung " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('ordnungTable').filter()" style="width:150px" placeholder="Suchen..."/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="ordnungTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{ordnungController.onToggle}" />
+                                                </p:columnToggler>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{ordnungController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="ordnungTabelleDaten" fileName="Ordnung" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="ordnungTabelleDaten" fileName="Ordnung"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="ordnungTabelleDaten" fileName="Ordnung" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="ordnungTabelleDaten" fileName="Ordnung" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="ordnungTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="ordnung"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{ordnungController.datensatzLoeschen(ordnung.ordnung_id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+                                        <p:column filterBy="#{ordnung.ordnung_id}" sortBy="#{ordnung.ordnung_id}" headerText="ID" style="width:120px" 
+                                                  filterMatchMode="contains"  visible="#{ordnungController.columnList[0]}" exportable="#{ordnungController.columnList[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.ordnung_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{ordnung.ordnung_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{ordnung.bezeichnung}" sortBy="#{ordnung.bezeichnung}" headerText="Bezeichnung"  
+                                                  filterMatchMode="contains" visible="#{ordnungController.columnList[1]}" exportable="#{ordnungController.columnList[1]}" style="width:520px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Bezeichnung"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.bezeichnung}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ordnung.bezeichnung}" placeholder="#{ordnung.bezeichnung}" style="width:96%" label="Bezeichnung"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{ordnung.kategorie}" sortBy="#{ordnung.kategorie}" headerText="Kategorie" 
+                                                  filterMatchMode="exact" visible="#{ordnungController.columnList[2]}" exportable="#{ordnungController.columnList[2]}" style="width:210px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('ordnungTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{ordnungController.ordnungkategorien}" var="ordnungkateogrieEintrag"
+                                                                   itemValue="#{ordnungkateogrieEintrag.kategoriebezeichnung}"  itemLabel="#{ordnungkateogrieEintrag.kategoriebezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Kategorie"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.kategorie}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu id="kategorieDropauswahl" 
+                                                                     value="#{ordnung.kategorie}" style="max-width: 100%"
+                                                                     filter="true" filterMatchMode="contains"
+                                                                     converter="ordnungKategorieConverter"
+                                                                     >
+                                                        <f:selectItem itemLabel="#{ordnung.kategorie}" itemValue="#{ordnung.kategorie}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{ordnungController.ordnungkategorien}" var="ordnungkateogrieEintrag"
+                                                                       itemValue="#{ordnungkateogrieEintrag}"  itemLabel="#{ordnungkateogrieEintrag.kategoriebezeichnung}"/>
+                                                    </p:selectOneMenu>
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{ordnung.lagerort}" sortBy="#{ordnung.lagerort}" headerText="Lagerort" 
+                                                  filterMatchMode="contains" visible="#{ordnungController.columnList[3]}" exportable="#{ordnungController.columnList[3]}" style="width:360px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Lagerort"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.lagerort}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ordnung.lagerort}"  placeholder="#{ordnung.lagerort}" style="width:96%" label="Lagerort"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column filterBy="#{ordnung.zustand}" sortBy="#{ordnung.zustand}" headerText="Zustand" 
+                                                  filterMatchMode="contains" visible="#{ordnungController.columnList[4]}" exportable="#{ordnungController.columnList[4]}" style="width:220px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Zustand"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.zustand}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ordnung.zustand}" placeholder="#{ordnung.zustand}" style="width:96%" label="Zustand"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+
+
+                                        </p:column>
+                                        <p:column filterBy="#{ordnung.informationen}" sortBy="#{ordnung.informationen}" headerText="Informationen" 
+                                                  filterMatchMode="contains" visible="#{ordnungController.columnList[5]}" exportable="#{ordnungController.columnList[5]}" style="width:320px">
+                                            <f:facet name="header">
+                                                <h:outputText value="Informationen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{ordnung.informationen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{ordnung.informationen}" placeholder="#{ordnung.informationen}" style="width:96%" label="Informationen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{ordnung.anhang}">   
+                                                <p:button href="#{ordnung.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="ordnungTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('ordnungTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bezeichnung" value="Bezeichnung: " />
+                                        <br/>
+                                        <p:inputText id="bezeichnung" value="#{ordnungController.bezeichnung}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorie" value="Kategorie: " />
+                                        <br/>
+                                        <p:outputPanel id="kategorieSelectmany">
+                                            <p:selectOneMenu id="kategorie" onchange="PF('ordnungTable').filter()" 
+                                                             value="#{ordnungController.ordnungskategorie}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="ordnungKategorieConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{ordnungController.ordnungkategorien}" var="ordnungkateogrieEintrag"
+                                                               itemValue="#{ordnungkateogrieEintrag}"  itemLabel="#{ordnungkateogrieEintrag.kategoriebezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel> 
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="lagerort" value="Lagerort: " />
+                                        <br/>
+                                        <p:inputText id="lagerort" value="#{ordnungController.lagerort}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="zustand" value="Zustand: " />
+                                        <br/>
+                                        <p:inputText id="zustand" value="#{ordnungController.zustand}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="informationen" value="Informationen: " />
+                                        <br/>
+                                        <p:inputText id="informationen" value="#{ordnungController.informationen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{ordnungController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <h4 style="font-weight: bold">Der Anhang ist nach dem Neuladen der Seite verfügbar.</h4>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{ordnungController.speichern()}" 
+                                             process="hinzufuegenForm"
+                                             icon="ui-icon-circle-plus"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategorieAusgabenkategorie" value="Kategorie (Ordnungkategorie): " />
+                                        <br/>
+                                        <p:inputText id="kategorieAusgabenkategorie" value="#{ordnungController.neuOrdnungkategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{ordnungController.kategorieSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:kategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Kategorie </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ordnungkategorieLoeschen" value="Kategorie (Ordnungkategorie):  " />
+                                        <br/>
+                                        <p:selectOneMenu id="ordnungkategorieLoeschen" onchange="PF('ordnungTable').filter()" 
+                                                         value="#{ordnungController.deleteOrdnungkategorie}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="ordnungKategorieConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Kategorie auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{ordnungController.ordnungkategorien}" var="ordnungkateogrieEintrag"
+                                                           itemValue="#{ordnungkateogrieEintrag}"  itemLabel="#{ordnungkateogrieEintrag.kategoriebezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Kategorie der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changekategorie" value="#{ordnungController.change_Kategorie}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{ordnungController.kategorieLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:kategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_id" value="#{ordnungController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhangLoeschen" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhangLoeschen" fileUploadListener="#{ordnungController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{ordnungController.editAnhang()}"
+                                                 style="width: 100%;height:45px"
+                                                 ajax="false"/>
+
+
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange"  action="#{ordnungController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{ordnungController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

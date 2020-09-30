@@ -1,0 +1,512 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Medien: Videoclips</title>
+    </h:head>
+
+
+
+    <h:body>
+        <ui:composition template="./template.xhtml">
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="2">
+                            <p:menuitem value="Musik - Tabelle" outcome="medien_musik">
+                            </p:menuitem>
+                            <p:menuitem value="Software - Tabelle" outcome="medien_software">
+                            </p:menuitem>
+                            <p:menuitem value="Videoclips - Tabelle" outcome="medien_videoclips">
+                            </p:menuitem>
+                            <p:menuitem value="Videos - Tabelle" outcome="medien_videos">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Medien" outcome="medien_grafik">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Videoclips - Tabelle</h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{medienController.notiztext}" height="70" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{medienController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{medienController.clearNotizen()}" icon="ui-icon-close" />                
+                </h:form>
+                <p:separator/>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{medienController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{medienController.scrollKategorieAdd()}" value="Kategorie erstellen" icon="ui-icon-tag" />
+                            <p:commandButton action="#{medienController.scrollKategorieDel()}" value="Kategorie löschen" icon="ui-icon-trash" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{medienController.datensatzLoeschenRueckgangigMachenVideoclips()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{medienController.deleteIDVideoclips}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{medienController.datensatzLoeschenMedienVideoclips()}"
+                                                             style="width: 100%;height:40px"
+                                                             ajax="true"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+                                    <p:remoteCommand name="changeRowNumbers" action="#{medienController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            videoclipsTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+                                    <p:dataTable  reflow="true" var="videoclips" value="#{medienController.medienVideoclipsListe}" widgetVar="videoclipsTable"
+                                                  id="videoclipsTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{medienController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{videoclips.id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{medienController.filteredMedienVideoclipsListe}">
+                                        <p:ajax event="cellEdit" listener="#{medienController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Videoclips " style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('videoclipsTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <p:commandButton id="toggler" type="button" value="Spalten" style="float:right" icon="ui-icon-gear" />
+                                                <p:columnToggler datasource="videoclipsTabelleDaten" trigger="toggler">
+                                                    <p:ajax event="toggle" listener="#{medienController.onToggleVideoclips}" />
+                                                </p:columnToggler>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{medienController.datensaetzeAnzahlTextVideoclips}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="videoclipsTabelleDaten" fileName="Videoclips" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="videoclipsTabelleDaten" fileName="Videoclips"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="videoclipsTabelleDaten" fileName="Videoclips" encoding="iso-8859-15"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="videoclipsTabelleDaten" fileName="Videoclips" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="videoclipsTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="medien_videoclips"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{medienController.datensatzLoeschenMedienVideoclips(videoclips.id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+
+                                        <p:column filterBy="#{videoclips.id}" sortBy="#{videoclips.id}" headerText="ID" style="width:120px" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideoclips[0]}" exportable="#{medienController.columnListVideoclips[0]}">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{videoclips.id}" />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{videoclips.interpret}" sortBy="#{videoclips.interpret}" headerText="Interpret"  filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideoclips[1]}" exportable="#{medienController.columnListVideoclips[1]}" style="width:400px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Interpret"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.interpret}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videoclips.interpret}" placeholder="#{videoclips.interpret}" style="width:96%" label="Interpret"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{videoclips.titel}" sortBy="#{videoclips.titel}" headerText="Titel"  filterMatchMode="contains" 
+                                                  visible="#{medienController.columnListVideoclips[2]}" exportable="#{medienController.columnListVideoclips[2]}" style="width:490px">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Titel"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.titel}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videoclips.titel}" placeholder="#{videoclips.titel}" style="width:96%" label="Titel"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column filterBy="#{videoclips.sprache}" sortBy="#{videoclips.sprache}" headerText="Sprache" filterMatchMode="exact"
+                                                  visible="#{medienController.columnListVideoclips[3]}" exportable="#{medienController.columnListVideoclips[3]}" style="width:230px">
+                                            <f:facet name="filter">
+                                                <p:selectOneMenu onchange="PF('videoclipsTable').filter()" 
+                                                                 filter="true" filterMatchMode="contains">
+                                                    <f:selectItem itemLabel="Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                                    <f:selectItems value="#{medienController.medienVideoclipsSpracheListe}" var="sprachekateogrieEintrag"
+                                                                   itemValue="#{sprachekateogrieEintrag.bezeichnung}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                </p:selectOneMenu>
+                                            </f:facet>
+                                            <f:facet name="header">
+                                                <h:outputText value="Sprache"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.sprache}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:selectOneMenu  id="spracheDropdown" value="#{videoclips.sprache}" style="max-width: 100%"
+                                                                      filter="true" filterMatchMode="contains">
+                                                        <f:selectItem itemLabel="#{videoclips.sprache}" itemValue="#{videoclips.sprache}" noSelectionOption="true" />
+                                                        <f:selectItems value="#{medienController.medienVideoclipsSpracheListe}" var="sprachekateogrieEintrag"
+                                                                       itemValue="#{sprachekateogrieEintrag.bezeichnung}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                    </p:selectOneMenu>
+
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{videoclips.jahr}" sortBy="#{videoclips.jahr}" headerText="Jahr" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideoclips[4]}" exportable="#{medienController.columnListVideoclips[4]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Jahr"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.jahr}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videoclips.jahr}"  placeholder="#{videoclips.jahr}" style="width:96%" label="Jahr"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:160px" filterBy="#{videoclips.link}" sortBy="#{videoclips.link}" headerText="Link" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideoclips[5]}" exportable="#{medienController.columnListVideoclips[5]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Link"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.link}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videoclips.link}"  placeholder="#{videoclips.link}" style="width:96%" label="Link"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column style="width:260px" filterBy="#{videoclips.nativer_titel}" sortBy="#{videoclips.nativer_titel}" headerText="Nativer Titel" filterMatchMode="contains"
+                                                  visible="#{medienController.columnListVideoclips[6]}" exportable="#{medienController.columnListVideoclips[6]}">
+                                            <f:facet name="header">
+                                                <h:outputText value="Nativer Titel"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{videoclips.nativer_titel}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{videoclips.nativer_titel}"  placeholder="#{videoclips.nativer_titel}" style="width:96%" label="Nativer Titel"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+
+                                    </p:dataTable>
+                                </p:outputPanel>      
+                                <p:contextMenu for="videoclipsTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('videoclipsTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="interpret" value="Interpret: " />
+                                        <br/>
+                                        <p:inputText id="interpret" value="#{medienController.interpretVideoclips}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="titel" value="Titel: " />
+                                        <br/>
+                                        <p:inputText id="titel" value="#{medienController.titelVideoclips}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprache" value="Sprache: " />
+                                        <br/>
+                                        <p:outputPanel id="sprachekategorieSelectmany">
+                                            <p:selectOneMenu id="sprache" onchange="PF('videoclipsTable').filter()" 
+                                                             value="#{medienController.spracheEintragVideoclips}" style="max-width: 100%"
+                                                             filter="true" filterMatchMode="contains"
+                                                             converter="medienVideoclipsSpracheConverter"
+                                                             >
+                                                <f:selectItem itemLabel="Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                                <f:selectItems value="#{medienController.medienVideoclipsSpracheListe}" var="sprachekateogrieEintrag"
+                                                               itemValue="#{sprachekateogrieEintrag}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                                <p:ajax event="change" update="@this" />
+                                            </p:selectOneMenu>
+                                        </p:outputPanel>                                   
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="jahr" value="Jahr: " />
+                                        <br/>
+                                        <p:inputText id="jahr" value="#{medienController.jahrVideoclips}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="link" value="Link: " />
+                                        <br/>
+                                        <p:inputText id="link" value="#{medienController.linkVideoclips}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="nativer_titel" value="Nativer Titel: " />
+                                        <br/>
+                                        <h5>Hier kann auch der native Titel (Titel in Fremdsprache) des Videoclips gespeichert werden.</h5>
+                                        <br/>
+                                        <p:inputText id="nativer_titel" value="#{medienController.nativer_TitelVideoclips}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             icon="ui-icon-circle-plus"
+                                             actionListener="#{medienController.speichernMedienVideoclips()}" 
+                                             process="hinzufuegenForm"
+                                             style="width: 100%;height:45px"
+                                             update="tabellenAnsicht"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: purple">
+                    <div class="panel-heading" style="background-color: purple;color:white;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-tags"/>   Neuen Eintrag für eine Kategorie erstellen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="kategorieForm">
+                            <h4 style="font-weight: bold">Sprache (Sprache - Videoclips) </h4>
+                            <p:panelGrid id="kategorieAddPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="kategoriesprache" value="Sprache: " />
+                                        <br/>
+                                        <p:inputText id="kategoriesprache" value="#{medienController.neuMedienVideoclipsSprache}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Hinzufügen" 
+                                             actionListener="#{medienController.medienVideoclipsSpracheSpeichern()}" 
+                                             process="kategorieForm"
+                                             icon="ui-icon-plusthick"
+                                             update="tabellenAnsicht,hinzufuegenForm:sprachekategorieSelectmany,del_kategorieForm"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+
+                    </div>
+                </div>
+
+                <p:separator />
+
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="background-color: orange;color:black;font-style: bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-trash"/>   Eine Kategorie löschen</h4></div>
+                    <div class="panel-body">
+
+
+                        <h:form id="del_kategorieForm">
+                            <h4 style="font-weight: bold">Sprache (Sprache - Videoclips) </h4>
+
+                            <p:panelGrid id="kategorieDelPanel" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="sprachekategorieLoeschen" value="Sprache: " />
+                                        <br/>
+                                        <p:selectOneMenu id="sprachekategorieLoeschen" onchange="PF('videoclipsTable').filter()" 
+                                                         value="#{medienController.deleteMedienVideoclipsSprache}" style="max-width: 100%"
+                                                         filter="true" filterMatchMode="contains"
+                                                         converter="medienVideoclipsSpracheConverter"
+                                                         >
+                                            <f:selectItem itemLabel="Sprache auswählen" itemValue="" noSelectionOption="true" />
+                                            <f:selectItems value="#{medienController.medienVideoclipsSpracheListe}" var="sprachekateogrieEintrag"
+                                                           itemValue="#{sprachekateogrieEintrag}"  itemLabel="#{sprachekateogrieEintrag.bezeichnung}"/>
+                                            <p:ajax event="change" update="@this" />
+                                        </p:selectOneMenu>
+                                        <br/>
+                                        <p:outputLabel for="changekategorie"  value="-> gelöschte Sprache (Kategorie) der Datensätze auf folgenden Wert ändern: " />
+                                        <br/>
+                                        <p:inputText id="changekategorie" value="#{medienController.change_MedienVideoclipsSprache}" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Löschen" 
+                                             actionListener="#{medienController.medienVideoclipsSpracheLoeschen()}" 
+                                             process="del_kategorieForm"
+                                             icon="ui-icon-trash"
+                                             update="del_kategorieForm,tabellenAnsicht,hinzufuegenForm:sprachekategorieSelectmany"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+
+                        </h:form>
+                    </div>
+                </div>
+
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{medienController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core" >
+
+    <h:head>
+        <title>Haushaltsverwaltung - Ausgaben: Kalender</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="4">
+                            <p:menuitem value="Ausgaben - Tabelle" outcome="ausgaben">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Nach Kategorien" outcome="ausgaben_kategorien">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Budget" outcome="ausgaben_budget">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Ausgaben" outcome="ausgaben_grafik">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Kalender" outcome="ausgaben_kalender">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Ausgaben - Kalender</h2>
+
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor"  value="#{ausgabenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{ausgabenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{ausgabenController.clearNotizen()}" icon="ui-icon-close" />
+                    <h:outputText value="#{ausgabenController.datumNotiztext}"/>
+                </h:form>
+                <br/>
+                <p:separator/>
+                <br/>
+
+                <div class="panel panel-primary">
+                    <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>  Kalender-Ansicht: Ausgaben dieses Jahres und regelmäßige Ausgaben</h4></div>
+                    <div class="panel-body">
+                        <h4 style="font-weight: bold">! Um die volle Beschreibung eines Kalendereintrags zu sehen: Den Kalendereintrag anklicken!</h4>
+
+                        <p:panelGrid columns="2">
+                            <h:outputLabel value="Kennzeichnung der Ausgaben (Ausgaben-Häufigkeit"/>
+                            <h:outputText value="Beschreibung"/>
+                            <h:outputLabel value="[T]"/>
+                            <h:outputText value="TÄGLICHE Ausgaben"/>
+                            <h:outputLabel value="[W]"/>
+                            <h:outputText value="WÖCHENTLICHE Ausgaben"/>
+                            <h:outputLabel value="[14]"/>
+                            <h:outputText value="14-TÄGIGE Ausgaben"/>
+                            <h:outputLabel value="[M]"/>
+                            <h:outputText value="MONATLICHE Ausgaben"/>
+                            <h:outputLabel value="[2M]"/>
+                            <h:outputText value="ALLE 2 MONATE: Ausgaben"/>
+                            <h:outputLabel value="[3M]"/>
+                            <h:outputText value="ALLE 3 MONATE: Ausgaben"/>
+                            <h:outputLabel value="[6M]"/>
+                            <h:outputText value="ALLE 6 MONATE: Ausgaben"/>
+                            <h:outputLabel value="[J]"/>
+                            <h:outputText value="JÄHRLICHE Ausgaben"/>
+                        </p:panelGrid>
+                        <h:outputLabel value="Rest: Bei den restlichen Ausgaben handelt sich es um einmalige Ausgaben dieses Jahres"/>
+
+                        <br/>
+
+                        <h:form>
+                            <p:schedule value="#{ausgabenController.ausgabenKalender}" locale="de" tooltip="true" timeZone="GMT+1"  style="max-width:1200px"> 
+                                <p:ajax event="eventSelect" listener="#{ausgabenController.onEventSelect}" update="eventDetails" oncomplete="PF('eventDialog').show();" />
+                            </p:schedule>
+                            <p:dialog widgetVar="eventDialog" header="Kalender-Eintrag" responsive="true">
+                                <h:panelGrid id="eventDetails" columns="2">
+                                    <p:outputLabel for="title" value="Titel:" />
+                                    <p:inputText id="title" value="#{ausgabenController.event.title}" />
+                                    <p:outputLabel for="datum" value="Datum:" />
+                                    <p:inputText id="datum" value="#{ausgabenController.event.startDate}" converter="dateConverter" />
+
+                                    <p:commandButton id="addButton" value="Schließen" oncomplete="PF('eventDialog').hide();" />
+                                </h:panelGrid>
+                            </p:dialog>    
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{ausgabenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

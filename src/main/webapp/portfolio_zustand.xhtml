@@ -1,0 +1,125 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+    <h:head>
+        <title>Haushaltsverwaltung - Kryptowaehrungen Portfolio</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanelGlobal">
+                    <h2 style="font-weight: bold"> Kryptowährungen: </h2>
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{kryptowaehrungenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{kryptowaehrungenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{kryptowaehrungenController.clearNotizen()}" icon="ui-icon-close" />                </h:form>
+                <p:separator/>
+                <br/>
+                <h:form>
+                    <p:tabMenu activeIndex="4">
+                        <p:menuitem value="Kauf/Verkauf" outcome="kryptowaehrungen">
+                        </p:menuitem>
+                        <p:menuitem value="Vermögen" outcome="kryptowaehrungen_vermoegen">
+                        </p:menuitem>
+                        <p:menuitem value="Überweisungen" outcome="kryptowaehrungen_ueberweisung">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Tabelle)" outcome="portfolio_zustand_tabelle">
+                        </p:menuitem>
+                        <p:menuitem value="Portfolio-Zustand (Grafik)" outcome="portfolio_zustand">
+                        </p:menuitem>
+                    </p:tabMenu>
+                </h:form>
+                <br/>
+                <div class="panel panel-primary" style="border-color: orange">
+                    <div class="panel-heading" style="font-weight: bold;background-color:orange;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-info-sign"/>   Zustand des Portfolios</h4></div>
+                    <div class="panel-body" >
+                        <h4> Entwicklung: Kryptowährungen-Werte in Euro </h4>
+                        <h:form>
+                            <p:lineChart model="#{kryptowaehrungenController.chartVermoegenWertineuro}" style="height:500px" widgetVar="chart"/>
+                        </h:form>
+                        <h:form>
+                            <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="exportChart()"/>
+                        </h:form>
+
+                        <p:dialog widgetVar="dlg" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                            <p:outputPanel id="output" layout="block" style="width:510px;height:800px"/>
+                        </p:dialog>
+
+                        <script type="text/javascript">
+                            function exportChart() {
+                                //export image
+                                $('#output').empty().append(PF('chart').exportAsImage());
+
+                                //show the dialog
+                                PF('dlg').show();
+                            }
+                        </script>
+                        <br/>
+                        <p:separator/>
+                        <br/>
+                        <h:form>
+                            <h4> Portfolio: Kryptowährungen-Werte in Euro </h4>
+                            <p:donutChart model="#{kryptowaehrungenController.chartPortfolioWertineuro}" style="width:900px;height:800px" widgetVar="chart2"/>
+                        </h:form>
+                        <h:form>
+                            <p:commandButton type="button" value="Export" icon="ui-icon-extlink" onclick="zweiterexportChart()"/>
+                        </h:form>
+
+                        <p:dialog widgetVar="dlg2" showEffect="fade" modal="false" responsive="true" header="Diagramm als Bild" resizable="false">
+                            <p:outputPanel id="output2" layout="block" style="width:510px;height:800px"/>
+                        </p:dialog>
+
+                        <script type="text/javascript">
+                            function zweiterexportChart() {
+                                //export image
+                                $('#output2').empty().append(PF('chart2').exportAsImage());
+
+                                //show the dialog
+                                PF('dlg2').show();
+                            }
+                        </script>
+                        <br/>
+
+                    </div>
+                </div>
+
+
+
+                <br/>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{kryptowaehrungenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

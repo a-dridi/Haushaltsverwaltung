@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+      
+
+    <h:head>
+        <title>Ausgaben (nur regelmäßige Ausgaben) - Aufteilung nach Kategorien</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="1">
+                            <p:menuitem value="Ausgaben - Tabelle" outcome="ausgaben">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Nach Kategorien" outcome="ausgaben_kategorien">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Budget" outcome="ausgaben_budget">
+                            </p:menuitem>
+                            <p:menuitem value="Grafische Ansicht: Ausgaben" outcome="ausgaben_grafik">
+                            </p:menuitem>
+                            <p:menuitem value="Ausgaben - Kalender" outcome="ausgaben_kalender">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+
+                    <h2>Ausgaben (nur regelmäßige Ausgaben) - Aufteilung nach Kategorien</h2>
+
+                </p:outputPanel>
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{ausgabenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{ausgabenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{ausgabenController.clearNotizen()}" icon="ui-icon-close" />
+                    <h:outputText value="#{ausgabenController.datumNotiztext}"/>
+                </h:form>
+                <br/>
+                <p:separator/>
+                <br/>
+                <div class="panel panel-primary">
+                    <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Monatliche Ausgaben </h4></div>
+                    <div class="panel-body">
+
+                        <h:form id="listenForm">
+
+                            <p:outputPanel id="tabelleausgabenPanel">
+                                <h4 style="font-weight: bold">Es sind nur regelmäßige Ausgaben in der Tabelle dargestellt.</h4>
+                                <br/>
+                                <p:dataTable  reflow="true" var="ausgabenmonatlich" value="#{ausgabenController.ausgabenKategorienBetragMonatlichListe}" widgetVar="ausgabenmonatlichTable"
+                                              id="ausgabenmonatlichTabelleDaten"
+                                              paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                              paginator="true" rows="15"
+                                              sortMode="multiple"
+                                              rowIndexVar="rowIndex"
+                                              rowKey="#{ausgabenmonatlich.bezeichnung}"
+                                              emptyMessage="Keine Einträge gefunden! " filteredValue="#{ausgabenController.filteredAusgabenKategorienBetragMonatlichListe}">
+                                    <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                    <f:facet name="header">
+                                        <p:outputPanel>
+                                            <h:outputLabel value=" Monatliche Ausgaben nach Kategorien aufgeteilt" style="font-weight: bolder; position: relative; margin-left: 0px;margin-right: 7px"/>
+                                            <br/>
+                                            <p:inputText id="globalFilter" onkeyup="PF('ausgabenmonatlichTable').filter()" style="width:150px" placeholder="Suchen"/>
+                                            <br/>
+                                            <h:outputText value="Monatliche Ausgaben: #{ausgabenController.ausgabenMonatSumme}€ -- "/>
+                                            <h:outputText value="Jährliche Ausgaben: #{ausgabenController.ausgabenJaehrlichSumme}€"/>
+                                            <br/>
+                                            <h:outputText value="Monatliche Einnahmen: #{ausgabenController.einnahmenMonatSumme}€ - Jährliche Einahmen:  #{ausgabenController.einnahmenJaehrlichSumme}€"/>
+                                            <br/>
+                                            <h:outputText value="-> Ertrag (Gewinn) monatlich: #{ausgabenController.gewinnMonatlich}€ - Ertrag (Gewinn) jährlich:  #{ausgabenController.gewinnJaehrlich}€"/>
+                                            <br/>
+                                            <h:outputText value="~ Durchschnittliche Ausgaben pro Monat: #{ausgabenController.durchschnittlicheMonatlicheAusgaben}€ "/>
+
+                                        </p:outputPanel>
+
+                                    </f:facet>
+                                    <f:facet name="footer">
+                                        <h:commandLink>
+                                            <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="pdf" target="ausgabenmonatlichTabelleDaten" fileName="Ausgaben_Monatlich_Kategorien" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xls" target="ausgabenmonatlichTabelleDaten" fileName="Ausgaben_Monatlich_Kategorien"/>
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="csv" target="ausgabenmonatlichTabelleDaten" fileName="Ausgaben_Monatlich_Kategorien" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xml" target="ausgabenmonatlichTabelleDaten" fileName="Ausgaben_Monatlich_Kategorien" />
+                                        </h:commandLink>
+
+                                    </f:facet>
+
+                                    <f:facet name="{Exporters}">
+                                        <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                            <p:printer target="ausgabenmonatlichTabelleDaten" />
+                                        </p:commandButton>
+                                        <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                         icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="ausgaben_kategorien"
+                                                         ajax="false"/>
+
+
+                                    </f:facet>
+
+                                    <p:column filterBy="#{ausgabenmonatlich.bezeichnung}" sortBy="#{ausgabenmonatlich.bezeichnung}" headerText="Ausgaben-Kategorie" 
+                                              filterMatchMode="contains">
+                                        <h:outputText value="#{ausgabenmonatlich.bezeichnung}" />
+                                    </p:column>
+                                    <p:column filterBy="#{ausgabenmonatlich.betrag}" sortBy="#{ausgabenmonatlich.betrag}" headerText="Betrag in EURO " 
+                                              filterMatchMode="contains">
+                                        <h:outputText value="#{ausgabenmonatlich.betrag}" />
+                                    </p:column>
+                                </p:dataTable>
+                            </p:outputPanel>      
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+
+                <p:separator/>
+                <br/>
+                <div class="panel panel-primary">
+                    <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Jährliche Ausgaben </h4></div>
+                    <div class="panel-body">
+
+                        <h:form id="listenForm2">
+
+                            <p:outputPanel id="tabelleausgabenPanel">
+                                <h4 style="font-weight: bold">Es sind nur regelmäßige Ausgaben in der Tabelle dargestellt.</h4>
+                                <br/>
+                                <p:dataTable  reflow="true" var="ausgabenjaehrlich" value="#{ausgabenController.ausgabenKategorienBetragJaehrlichListe}" widgetVar="ausgabenjaehrlichTable"
+                                              id="ausgabenjaehrlichTabelleDaten"
+                                              paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters}"
+                                              paginator="true" rows="15"
+                                              sortMode="multiple"
+                                              rowIndexVar="rowIndex"
+                                              rowKey="#{ausgabenjaehrlich.bezeichnung}"
+                                              emptyMessage="Keine Einträge gefunden! " filteredValue="#{ausgabenController.filteredAusgabenKategorienBetragJaehrlichListe}">
+                                    <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                    <f:facet name="header">
+                                        <p:outputPanel>
+                                            <h:outputLabel value=" Jährliche Ausgaben nach Kategorien aufgeteilt" style="font-weight: bolder; position: relative; margin-left: 0px;margin-right: 7px"/>
+                                            <br/>
+                                            <p:inputText id="globalFilter" onkeyup="PF('ausgabenjaehrlichTable').filter()" style="width:150px" placeholder="Suchen"/>
+                                            <br/>
+                                            <h:outputText value="Monatliche Ausgaben: #{ausgabenController.ausgabenMonatSumme}€ -- "/>
+                                            <h:outputText value="Jährliche Ausgaben: #{ausgabenController.ausgabenJaehrlichSumme}€"/>
+                                            <br/>
+                                            <h:outputText value="Monatliche Einnahmen: #{ausgabenController.einnahmenMonatSumme}€ - Jährliche Einahmen:  #{ausgabenController.einnahmenJaehrlichSumme}€"/>
+                                            <br/>
+                                            <h:outputText value="-> Ertrag (Gewinn) monatlich: #{ausgabenController.gewinnMonatlich}€ - Ertrag (Gewinn) jährlich:  #{ausgabenController.gewinnJaehrlich}€"/>
+                                            <br/>
+                                            <h:outputText value="~ Durchschnittliche Ausgaben pro Monat: #{ausgabenController.durchschnittlicheMonatlicheAusgaben}€ "/>
+
+                                        </p:outputPanel>
+
+                                    </f:facet>
+                                    <f:facet name="footer">
+                                        <h:commandLink>
+                                            <img src="./css/pdf_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="pdf" target="ausgabenjaehrlichTabelleDaten" fileName="Ausgaben_Jaehrlich_Kategorien" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xls_icon.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xls" target="ausgabenjaehrlichTabelleDaten" fileName="Ausgaben_Jaehrlich_Kategorien"/>
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/csv.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="csv" target="ausgabenjaehrlichTabelleDaten" fileName="Ausgaben_Jaehrlich_Kategorien" />
+                                        </h:commandLink>
+
+                                        <h:commandLink>
+                                            <img src="./css/xml.png" style="mag-height:auto; max-width: 20%"/>
+                                            <p:dataExporter type="xml" target="ausgabenjaehrlichTabelleDaten" fileName="Ausgaben_Jaehrlich_Kategorien" />
+                                        </h:commandLink>
+
+                                    </f:facet>
+
+                                    <f:facet name="{Exporters}">
+                                        <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                            <p:printer target="ausgabenjaehrlichTabelleDaten" />
+                                        </p:commandButton>
+                                        <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                         icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="ausgaben_kategorien"
+                                                         ajax="false"/>
+
+
+                                    </f:facet>
+
+                                    <p:column filterBy="#{ausgabenjaehrlich.bezeichnung}" sortBy="#{ausgabenjaehrlich.bezeichnung}" headerText="Ausgaben-Kategorie" 
+                                              filterMatchMode="contains">
+                                        <h:outputText value="#{ausgabenjaehrlich.bezeichnung}" />
+                                    </p:column>
+                                    <p:column filterBy="#{ausgabenjaehrlich.betrag}" sortBy="#{ausgabenjaehrlich.betrag}" headerText="Betrag in EURO" 
+                                              filterMatchMode="contains">
+                                        <h:outputText value="#{ausgabenjaehrlich.betrag}" />
+                                    </p:column>
+                                </p:dataTable>
+                            </p:outputPanel>      
+                        </h:form>
+                    </div>
+                </div>
+
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{ausgabenController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+

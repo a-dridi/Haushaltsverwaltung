@@ -1,0 +1,445 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <h:head>
+        <title>Haushaltsverwaltung - Vermögen Jährlich</title>
+    </h:head>
+
+
+
+    <h:body>
+
+        <ui:composition template="./template.xhtml">
+
+            <ui:define name="content">
+                <h3 class="first">Notizen</h3>
+                <h:form>
+                    <p:textEditor widgetVar="notizEditor" value="#{vermoegenController.notiztext}" height="150" style="margin-bottom:10px" placeholder="Notizen hier schreiben und dann Speichern anklicken...">
+                        <f:facet name="toolbar">
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                                <button class="ql-strike"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-font"></select>
+                                <select class="ql-size"></select>
+                            </span>
+                        </f:facet>
+                    </p:textEditor>
+                    <p:commandButton value="Speichern" update="messages" style="background-color: green;color:white" action="#{vermoegenController.speichernNotiz()}" icon="ui-icon-disk" />
+                    <p:commandButton value="Alles Löschen" type="button" style="background-color: red;color:white;margin-right:10px" onclick="PF('notizEditor').clear();" action="#{vermoegenController.clearNotizen()}" icon="ui-icon-close" />                </h:form>
+                <br/>
+                <p:separator/>
+
+                <p:outputPanel id="ueberschriftPanel">
+                    <h:form>
+                        <p:tabMenu activeIndex="1">
+                            <p:menuitem value="Vermögen (Monatlich)" outcome="vermoegen">
+                            </p:menuitem>
+                            <p:menuitem value="Vermögen (Jährlich)" outcome="vermoegen_jaehrlich">
+                            </p:menuitem>
+                            <p:menuitem value="Grafik: Vermögen (Monatlich)" outcome="vermoegen_grafik_monatlich">
+                            </p:menuitem>
+                            <p:menuitem value="Grafik: Vermögen (Jährlich)" outcome="vermoegen_grafik_jaehrlich">
+                            </p:menuitem>
+                        </p:tabMenu>
+                    </h:form>
+                    <br/>
+                    <h2>Vermögen (Jährliche Auflistung)- Tabelle</h2>
+                    <h3>Ansicht der jährlichen Auflistung und hinzufügen/bearbeiten von Datensätze</h3>
+                    <h4 style="font-weight: bold"><span class="glyphicon glyphicon-exclamation-sign"/> Tabelle wird auto. durch Tabelle Vermögen (monatlich) befüllt. </h4>
+                </p:outputPanel>
+                <!-- Immer Anpassen -->
+                <h:form>
+                    <p:toolbar>
+                        <f:facet name="left">
+                            <p:outputLabel style="padding:8px" value="Wechseln zu: "/>
+                            <p:commandButton action="#{vermoegenJaehrlichController.scrollHinzufuegen()}" value="Neuer Datensatz" icon="ui-icon-plus" />
+                            <p:commandButton action="#{vermoegenJaehrlichController.scrollAnhangEdit()}" value="Anhang bearbeiten" icon="ui-icon-document" />
+                        </f:facet>
+                        <f:facet name="right">
+                        </f:facet>
+                    </p:toolbar>
+                </h:form>
+                <br/>
+                <!-- Immer Anpassen ENDE -->
+
+                <!--Globales Statusanzeig beim Laden -->
+                <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" responsive="true" resizable="false" showHeader="false">
+                    <p:graphicImage  height="200px" value="/css/spinner.gif" />                       
+                </p:dialog>
+                <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+                <!--Globales Statusanzeig beim Laden - ENDE -->
+
+                <p:outputPanel id="tabellenAnsicht">
+                    <div class="panel panel-primary" style="border-color: red">
+                        <div class="panel-heading" style="font-weight: bold;background-color:red;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-remove"/>   Datensatz löschen</h4></div>
+                        <div class="panel-body" >
+                            <h:form>
+                                <p:commandLink ajax="true" style="font-style:italic; padding:5px; background-color:orange" 
+                                               actionListener="#{vermoegenJaehrlichController.datensatzLoeschenRueckgangigMachen()}" 
+                                               value="⏎ Gelöschte Datensätze rückgängig machen" update="listenForm:tabelleausgabenPanel"/>
+                            </h:form>
+
+                            <h:form id="deleteForm">
+                                <p:panelGrid columns="1" style="width:100%">
+                                    <p:row>
+                                        <p:column>
+                                            <h:outputLabel for="zeilenid" value="Zeile mit der ID: "/>
+                                            <br/>
+                                            <p:inputText id="zeilenid" value="#{vermoegenJaehrlichController.deleteID}" style="width:100%"/>
+                                            <br/>
+                                            <p:commandButton process="deleteForm" update="listenForm:tabelleausgabenPanel"
+                                                             icon="ui-icon-trash" value="Löschen" actionListener="#{vermoegenJaehrlichController.datensatzLoeschen()}"
+                                                             ajax="true"
+                                                             style="width: 100%;height:40px"/>
+                                        </p:column>
+                                    </p:row>
+                                </p:panelGrid>
+                                <h4>Gelöschte Datensätze wiederherstellen: Wert der Spalte "deleted" muss auf false geändert werden </h4>
+                            </h:form>
+                        </div>
+                    </div>
+
+                    <div class="panel panel-primary">
+                        <div class="panel-heading" style="font-weight: bold;"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-th-list"/>   Darstellung und Bearbeitung der Tabelle</h4></div>
+                        <div class="panel-body">
+
+                            <h:form id="listenForm">
+
+                                <p:outputPanel id="tabelleausgabenPanel">
+                                    <h4 style="color:red;font-weight: bolder"><span class="glyphicon glyphicon-exclamation-sign"/> !!! EDITIEREN dieser Tabelle: Nur möglich wenn die Datensätze AUFSTEIGEND nach der ID sortiert sind.</h4>
+                                    <h4 style="color:red">!!! WICHTIG: Bitte Betrag im folgenden Format eingeben: 12.43</h4>
+
+                                    <!-- BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN -->
+                                    <br/>
+                                    <h4>Mit dem Button "D" kann ein Anhang von einem Datensatz/einer Zeile heruntergeladen werden. Das passiert auto. über die Cloud (hausverwaltung_cloud) nach dem Anklicken dieses Buttons. </h4>
+                                    <!-- ENDE - BEI TABELLEN DIE ANHÄNGE BEINHALTEN KÖNNEN - ENDE -->
+
+                                    <br/>
+
+                                    <p:remoteCommand name="changeRowNumbers" action="#{vermoegenJaehrlichController.change_rownumber()}" process="@this" global="false" />
+                                    <script>
+                                        jQuery(document).ready(function () {
+                                            vermoegenjaehrlichTable.paginator.rppSelect.change(function () {
+                                                changeRowNumbers([{name: 'newRowsAmount', value: this.value}]);
+                                            });
+                                        });
+                                    </script>
+
+                                    <p:dataTable  reflow="true" var="vermoegenjaehrlich" value="#{vermoegenJaehrlichController.vermogenJaehrlichListe}" widgetVar="vermoegenjaehrlichTable"
+                                                  id="vermoegenjaehrlichTabelleDaten"
+                                                  paginatorTemplate="{CurrentPageReport}  {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {Exporters} {RowsPerPageDropdown}"
+                                                  paginator="true" rows="#{vermoegenJaehrlichController.rownumbers}"
+                                                  rowsPerPageTemplate="1,5,10,25,50,100,250,1000"
+                                                  sortMode="multiple"
+                                                  editable="true" editMode="cell"
+                                                  rowIndexVar="rowIndex"
+                                                  rowKey="#{vermoegenjaehrlich.vermoegenjaehrlich_id}"
+                                                  emptyMessage="Keine Einträge gefunden! " filteredValue="#{vermoegenJaehrlichController.filteredVermogenJaehrlichListe}">
+                                        <p:ajax event="cellEdit" listener="#{vermoegenJaehrlichController.editRow}" />
+                                        <f:attribute name="collectionType" value="java.util.ArrayList" />
+
+                                        <f:facet name="header">
+                                            <p:outputPanel>
+                                                <h:outputLabel value="Vermoegen jaehrlich" style="font-weight: bolder; position: relative; margin-left: 5px;margin-right: 20px"/>
+                                                <br/>
+                                                <p:inputText id="globalFilter" onkeyup="PF('vermoegenjaehrlichTable').filter()" style="width:250px" placeholder="Suchen"/>
+                                                <br/>
+                                                <h:outputText value="Gesamtsumme Geldzuwachs: #{vermoegenJaehrlichController.gesamtsummeZuwachs}  EURO"/>
+                                                <br/>
+                                            </p:outputPanel>
+
+                                        </f:facet>
+                                        <f:facet name="footer">
+                                            <h:outputText value="#{vermoegenJaehrlichController.datensaetzeAnzahlText}"/>
+                                            <br/>
+                                            <h:commandLink>
+                                                <img src="./css/pdf_icon.png" style="max-width: 20%"/>
+                                                <p:dataExporter type="pdf" target="vermoegenjaehrlichTabelleDaten" fileName="Vermoegen_Jaehrlich" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xls_icon.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xls" target="vermoegenjaehrlichTabelleDaten" fileName="Vermoegen_Jaehrlich"/>
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/csv.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="csv" target="vermoegenjaehrlichTabelleDaten" fileName="Vermoegen_Jaehrlich" encoding="iso-8859-15" />
+                                            </h:commandLink>
+
+                                            <h:commandLink>
+                                                <img src="./css/xml.png" style=" max-width: 20%"/>
+                                                <p:dataExporter type="xml" target="vermoegenjaehrlichTabelleDaten" fileName="Vermoegen_Jaehrlich" />
+                                            </h:commandLink>
+                                        </f:facet>
+
+
+                                        <f:facet name="{Exporters}">
+                                            <p:commandButton value="Drucken" type="button" icon="ui-icon-print" style="margin:5px">
+                                                <p:printer target="vermoegenjaehrlichTabelleDaten" />
+                                            </p:commandButton>
+
+                                            <p:commandButton process="listenForm" update="tabellenAnsicht,hinzufuegenForm"
+                                                             icon="ui-icon-arrowrefresh-1-w" value="Aktualisieren" action="vermoegen_jaehrlich"
+                                                             ajax="false"/>
+
+
+                                        </f:facet>
+
+
+                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
+                                                  visible="true" exportable="false">
+                                            <p:commandButton value="" 
+                                                             icon="fa fa-fw fa-times"
+                                                             actionListener="#{vermoegenJaehrlichController.datensatzLoeschen(vermoegenjaehrlich.id)}" 
+                                                             process="listenForm"
+                                                             update="tabellenAnsicht"
+                                                             style="width: 5px; background-color: red; color: white"
+                                                             ajax="true" />
+                                        </p:column>
+
+
+                                        <p:column style="width:120px" filterBy="#{vermoegenjaehrlich.jahr}" sortBy="#{vermoegenjaehrlich.jahr}" headerText="Jahr"  filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Jahr"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{vermoegenjaehrlich.jahr}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{vermoegenjaehrlich.jahr}" placeholder="#{vermoegenjaehrlich.jahr}" style="width:96%" label="Jahr"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:160px" filterBy="#{vermoegenjaehrlich.ausgaben}" sortBy="#{vermoegenjaehrlich.ausgaben}" headerText="Ausgaben"  filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Ausgaben"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText style="font-color:red" value="#{vermoegenjaehrlich.ausgaben}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{vermoegenjaehrlich.ausgaben}" placeholder="#{vermoegenjaehrlich.ausgaben}" style="width:96%" label="Ausgaben"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:160px" filterBy="#{vermoegenjaehrlich.einnahmen}" sortBy="#{vermoegenjaehrlich.einnahmen}" headerText="Einnahmen"  filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="Einnahmen"/>
+                                                </f:facet>
+
+                                                <f:facet name="output">
+                                                    <h:outputText style="font-color:green" value="#{vermoegenjaehrlich.einnahmen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{vermoegenjaehrlich.einnahmen}" placeholder="#{vermoegenjaehrlich.einnahmen}" style="width:96%" label="Einnahmen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+
+                                        <p:column style="width:190px" filterBy="#{vermoegenjaehrlich.differenz}" sortBy="#{vermoegenjaehrlich.differenz}" headerText="Differenz" filterMatchMode="contains">
+                                            <f:facet name="header">
+                                                <h:outputText value="Differenz"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{vermoegenjaehrlich.differenz}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{vermoegenjaehrlich.differenz}" />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+                                        <p:column style="width:120px" filterBy="#{vermoegenjaehrlich.prozentZuwachs}" sortBy="#{vermoegenjaehrlich.prozentZuwachs}" headerText="Wachstum (1J.)" filterMatchMode="contains">
+                                            <f:facet name="header">
+                                                <h:outputText value="Wachstum (1M.)"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{vermoegenjaehrlich.prozentZuwachs}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{vermoegenjaehrlich.prozentZuwachs}" />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+
+
+                                        <p:column style="width:500px" filterBy="#{vermoegenjaehrlich.bemerkungen}" sortBy="#{vermoegenjaehrlich.bemerkungen}" headerText="Bemerkungen" filterMatchMode="contains">
+                                            <f:facet name="header">
+                                                <h:outputText value="Bemerkungen"/>
+                                            </f:facet>
+
+                                            <p:cellEditor>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{vermoegenjaehrlich.bemerkungen}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <p:inputText value="#{vermoegenjaehrlich.bemerkungen}" placeholder="#{vermoegenjaehrlich.bemerkungen}" style="width:96%" label="Bemerkungen"  />
+                                                </f:facet>
+                                            </p:cellEditor>
+                                        </p:column>
+                                        <p:column filterBy="#{vermoegenjaehrlich.vermoegenjaehrlich_id}" sortBy="#{vermoegenjaehrlich.vermoegenjaehrlich_id}" headerText="ID" style="width:120px" filterMatchMode="contains">
+                                            <p:cellEditor>
+                                                <f:facet name="header">
+                                                    <h:outputText value="ID"/>
+                                                </f:facet>
+                                                <f:facet name="output">
+                                                    <h:outputText value="#{vermoegenjaehrlich.vermoegenjaehrlich_id}" />
+                                                </f:facet>
+                                                <f:facet name="input">
+                                                    <h:outputText value="#{vermoegenjaehrlich.vermoegenjaehrlich_id}" />
+                                                </f:facet>
+
+                                            </p:cellEditor>
+
+                                        </p:column>
+
+                                        <p:column style="width:70px" headerText="D" exportable="false">
+                                            <p:outputPanel rendered="#{vermoegenjaehrlich.anhang}">   
+                                                <p:button href="#{vermoegenjaehrlich.anhangpfad}" value="D" icon="ui-icon-arrowthick-1-s"/>
+                                            </p:outputPanel>
+                                        </p:column>
+                                    </p:dataTable>
+                                </p:outputPanel> 
+
+                                <p:contextMenu for="vermoegenjaehrlichTabelleDaten" widgetVar="cMenu">   
+                                    <p:menuitem value="Zeile bearbeiten" icon="ui-icon-search" onclick="PF('vermoegenjaehrlichTable').showCellEditor();
+                                            return false;"/>  
+                                    <p:menuitem value="Menü schließen" icon="ui-icon-close" onclick="PF('cMenu').hide()"/>  
+                                </p:contextMenu> 
+                            </h:form>
+                        </div>
+                    </div>
+                </p:outputPanel>
+
+                <p:separator />
+                <div class="panel panel-primary" style="border-color: green">
+                    <div class="panel-heading" style="background-color:green;color:white;font-style:bold"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-plus"/>  HINZUFÜGEN eines neuen Datensatzes</h4>
+                    </div>
+                    <div class="panel-body">
+
+                        <h:form id="hinzufuegenForm">
+                            <p:panelGrid id="neuenDatensatzFormular" columns="1" style="width: 100%;border: none">
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="jahr" value="Jahr (Format YYYY): " />
+                                        <br/>
+                                        <p:inputText id="jahr" value="#{vermoegenJaehrlichController.jahr}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="ausgabenbetrag" style="color:red" value="Gesamte AUSGABEN des Jahres (Format: 26.50): " />
+                                        <br/>
+                                        <p:inputText id="ausgabenbetrag" placeholder="Ausgaben" value="#{vermoegenJaehrlichController.ausgaben}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="einnahmenbetrag"  style="color:green" value="Gesamte EINNAHMEN des Jahres (Format: 26.50): " />
+                                        <br/>
+                                        <p:inputText id="einnahmenbetrag" placeholder="Einnahmen" value="#{vermoegenJaehrlichController.einnahmen}" required="true" style="width: 100%"/>
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="bemerkungen" value="Bemerkungen: " />
+                                        <br/>
+                                        <p:inputText id="bemerkungen" value="#{vermoegenJaehrlichController.bemerkungen}" style="width: 100%" />
+                                    </p:column>
+                                </p:row>
+
+                                <p:row>
+                                    <p:column> 
+                                        <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                        <br/>
+                                        <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+                                        <br/>
+                                        <p:fileUpload id="anhang" fileUploadListener="#{vermoegenJaehrlichController.anhangSpeichern}" mode="advanced"
+                                                      update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                    </p:column>
+                                </p:row>
+                            </p:panelGrid>
+                            <p:commandButton value="Speichern" 
+                                             actionListener="#{vermoegenJaehrlichController.speichern()}" 
+                                             process="hinzufuegenForm"
+                                             icon="ui-icon-circle-plus"
+                                             update="tabellenAnsicht"
+                                             style="width: 100%;height:45px"
+                                             ajax="true" />
+                        </h:form>
+                    </div>
+                </div>
+                <p:separator />
+
+
+
+                <div class="panel panel-primary" style="border-color: brown">
+                    <div class="panel-heading" style="font-weight: bold;background-color:brown;color:white"><h4><span style="padding-left: 5px" class="glyphicon glyphicon-file"/>   Anhang bearbeiten / löschen</h4></div>
+                    <div class="panel-body" >
+                        <h:form id="neuAnhangForm">
+                            <h4>Bitte ID des betreffenden Datensatzes eingeben. Um ein Anhang zu löschen: Keine Datei raufladen/hinzufügen. Wenn eine Datei hinzufügt wird, dann wird der Anhang überschrieben od. neu erstellt.</h4>
+                            <p:panelGrid id="AnhangEditPanel" columns="1" style="width:100%">
+                                <h:outputLabel for="anhang_id" value="Zeile mit der ID: "/>
+                                <p:inputText id="anhang_id" value="#{vermoegenJaehrlichController.anhangID}" style="width:100%"/>
+
+                                <p:outputLabel for="anhang" value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " />
+                                <h4>Anhang: Der Dateiname wird in die ID Nr. (dieses neu zu erstellenden Datensatz) umbennant</h4>
+
+                                <p:fileUpload  value="Anhang ( Nur 1 Datei - PNG,JPG,GIF,zip oder 7z - Datei ): " id="anhang" fileUploadListener="#{vermoegenJaehrlichController.anhangSpeichern}" mode="advanced"
+                                               update="nachrichtGrowl,messages" auto="true" sizeLimit="1000000000" allowTypes="/(\.|\/)(gif|jpe?g|zip|7z|png)$/" />
+                                <p:commandButton process="neuAnhangForm" update="listenForm:tabelleausgabenPanel"
+                                                 icon="ui-icon-check" value="Anhang bearbeiten" action="#{vermoegenJaehrlichController.editAnhang()}"
+                                                 ajax="false"
+                                                 style="width: 100%;height:45px"
+                                                 />
+
+
+                            </p:panelGrid>
+                            <br/>
+                            <br/>
+                            <h:form>
+
+                                <p:commandLink style="font-style:italic; padding:5px; background-color:orange" action="#{vermoegenJaehrlichController.flushAnhang()}" value="Anhang Cache leeren"/>
+                            </h:form>
+
+                        </h:form>
+                    </div>
+                </div>
+                <br/>
+                <h:form>
+                    <p:commandButton action="#{vermoegenJaehrlichController.scrollTop()}" value="Top" icon="ui-icon-carat-1-n"/>
+                </h:form>
+
+
+            </ui:define>
+
+        </ui:composition>
+
+    </h:body>
+</html>
+
