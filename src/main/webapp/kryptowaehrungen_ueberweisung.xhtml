@@ -200,16 +200,6 @@
 
                                         </f:facet>
 
-                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
-                                                  visible="true" exportable="false">
-                                            <p:commandButton value="" 
-                                                             icon="fa fa-fw fa-times"
-                                                             actionListener="#{kryptowaehrungenController.datensatzLoeschenUeberweisungen(ueberweisungenvar.id)}" 
-                                                             process="listenFormUeberweisungen"
-                                                             update="listenFormUeberweisungen:tabelleausgabenPanelUeberweisungen"
-                                                             style="width: 5px; background-color: red; color: white"
-                                                             ajax="true" />
-                                        </p:column>
 
                                         <p:column filterBy="#{ueberweisungenvar.id}" sortBy="#{ueberweisungenvar.id}" headerText="ID" style="width:120px" filterMatchMode="contains">
                                             <p:cellEditor>

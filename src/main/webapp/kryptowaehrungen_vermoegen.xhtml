@@ -212,17 +212,6 @@
 
                                         </f:facet>
 
-                                        <p:column headerText="⌫" style="width:50px" filterMatchMode="contains"
-                                                  visible="true" exportable="false">
-                                            <p:commandButton value="" 
-                                                             icon="fa fa-fw fa-times"
-                                                             actionListener="#{kryptowaehrungenController.datensaetzeAnzahlTextVermoegen(id)}" 
-                                                             process="listenFormVermoegen"
-                                                             update="listenFormVermoegen:tabelleausgabenPanelVermoegen"
-                                                             style="width: 5px; background-color: red; color: white"
-                                                             ajax="true" />
-                                        </p:column>
-
                                         <p:column id="vermoegenSpalteWaehrung" filterBy="#{vermoegenvar.waehrung}" sortBy="#{vermoegenvar.waehrung}" 
                                                   headerText="Waehrung"
                                                   filterMatchMode="exact" visible="#{kryptowaehrungenController.columnListVermoegen[0]}" exportable="#{kryptowaehrungenController.columnListVermoegen[0]}" style="width:160px">
